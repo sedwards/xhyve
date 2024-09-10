@@ -36,6 +36,7 @@
 
 #include <Hypervisor/hv.h>
 #include <Hypervisor/hv_vmx.h>
+#include <Hypervisor/hv_vcpu.h>
 #include <xhyve/support/misc.h>
 #include <xhyve/support/atomic.h>
 #include <xhyve/support/psl.h>
@@ -50,7 +51,6 @@
 #include <xhyve/vmm/io/vlapic.h>
 #include <xhyve/vmm/io/vlapic_priv.h>
 #include <xhyve/vmm/aarch64.h>
-#include <xhyve/firmware/bootrom.h>
 #include <xhyve/dtrace.h>
 
 #define PROCBASED_CTLS_WINDOW_SETTING \
@@ -147,140 +147,86 @@ static int cap_monitor_trap;
 static int vmx_getdesc(void *arg, int vcpu, enum vm_reg_name reg, struct seg_desc *desc);
 static int vmx_getreg(void *arg, int vcpu, enum vm_reg_name reg, uint64_t *retval);
 
-#ifndef __aarch64__ 
-static __inline uint64_t
-reg_read(int vcpuid, hv_x86_reg_t reg) {
-	uint64_t val;
+/* FIXME - Should be read from hv.h, investigate */
+typedef uint32_t hv_vcpuid_t;
 
-	hv_vcpu_read_register(((hv_vcpuid_t) vcpuid), reg, &val);
-	return val;
+
+//static __inline uint64_t
+//reg_read(int vcpuid, hv_reg_t reg) {
+//	uint64_t val;
+
+//	hv_vcpu_read_register(((hv_vcpuid_t) vcpuid), reg, &val);
+//	return val;
+//}
+
+static __inline uint64_t
+reg_read(int vcpuid, hv_reg_t reg) {
+    uint64_t value;
+    
+    /* ChatGPT suggested checking for failure here */
+    if (hv_vcpu_get_reg((hv_vcpuid_t)vcpuid, reg, &value) != 0) {
+        // Handle error, such as logging or return an error code
+        printf("reg_read failure\n");
+        return 0;
+    }
+    return value;
 }
 
 static __inline void
-reg_write(int vcpuid, hv_x86_reg_t reg, uint64_t val) {
+reg_write(int vcpuid, hv_reg_t reg, uint64_t val) {
 	hv_vcpu_write_register(((hv_vcpuid_t) vcpuid), reg, val);
 }
 
 static void hvdump(int vcpu) {
-	printf("VMCS_PIN_BASED_CTLS:           0x%016llx\n",
-		vmcs_read(vcpu, VMCS_PIN_BASED_CTLS));
-	printf("VMCS_PRI_PROC_BASED_CTLS:      0x%016llx\n",
-		vmcs_read(vcpu, VMCS_PRI_PROC_BASED_CTLS));
-	printf("VMCS_SEC_PROC_BASED_CTLS:      0x%016llx\n",
-		vmcs_read(vcpu, VMCS_SEC_PROC_BASED_CTLS));
-	printf("VMCS_ENTRY_CTLS:               0x%016llx\n",
-		vmcs_read(vcpu, VMCS_ENTRY_CTLS));
-	printf("VMCS_EXCEPTION_BITMAP:         0x%016llx\n",
-		vmcs_read(vcpu, VMCS_EXCEPTION_BITMAP));
-	printf("VMCS_CR0_MASK:                 0x%016llx\n",
-		vmcs_read(vcpu, VMCS_CR0_MASK));
-	printf("VMCS_CR0_SHADOW:               0x%016llx\n",
-		vmcs_read(vcpu, VMCS_CR0_SHADOW));
-	printf("VMCS_CR4_MASK:                 0x%016llx\n",
-		vmcs_read(vcpu, VMCS_CR4_MASK));
-	printf("VMCS_CR4_SHADOW:               0x%016llx\n",
-		vmcs_read(vcpu, VMCS_CR4_SHADOW));
-	printf("VMCS_GUEST_PHYSICAL_ADDRESS:   0x%016llx\n",
-	       vmcs_read(vcpu, VMCS_GUEST_PHYSICAL_ADDRESS));
-	printf("VMCS_GUEST_LINEAR_ADDRESS:     0x%016llx\n",
-	       vmcs_read(vcpu, VMCS_GUEST_LINEAR_ADDRESS));
-	printf("VMCS_GUEST_CS_SELECTOR:        0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_CS_SELECTOR));
-	printf("VMCS_GUEST_CS_LIMIT:           0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_CS_LIMIT));
-	printf("VMCS_GUEST_CS_ACCESS_RIGHTS:   0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_CS_ACCESS_RIGHTS));
-	printf("VMCS_GUEST_CS_BASE:            0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_CS_BASE));
-	printf("VMCS_GUEST_DS_SELECTOR:        0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_DS_SELECTOR));
-	printf("VMCS_GUEST_DS_LIMIT:           0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_DS_LIMIT));
-	printf("VMCS_GUEST_DS_ACCESS_RIGHTS:   0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_DS_ACCESS_RIGHTS));
-	printf("VMCS_GUEST_DS_BASE:            0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_DS_BASE));
-	printf("VMCS_GUEST_ES_SELECTOR:        0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_ES_SELECTOR));
-	printf("VMCS_GUEST_ES_LIMIT:           0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_ES_LIMIT));
-	printf("VMCS_GUEST_ES_ACCESS_RIGHTS:   0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_ES_ACCESS_RIGHTS));
-	printf("VMCS_GUEST_ES_BASE:            0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_ES_BASE));
-	printf("VMCS_GUEST_FS_SELECTOR:        0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_FS_SELECTOR));
-	printf("VMCS_GUEST_FS_LIMIT:           0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_FS_LIMIT));
-	printf("VMCS_GUEST_FS_ACCESS_RIGHTS:   0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_FS_ACCESS_RIGHTS));
-	printf("VMCS_GUEST_FS_BASE:            0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_FS_BASE));
-	printf("VMCS_GUEST_GS_SELECTOR:        0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_GS_SELECTOR));
-	printf("VMCS_GUEST_GS_LIMIT:           0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_GS_LIMIT));
-	printf("VMCS_GUEST_GS_ACCESS_RIGHTS:   0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_GS_ACCESS_RIGHTS));
-	printf("VMCS_GUEST_GS_BASE:            0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_GS_BASE));
-	printf("VMCS_GUEST_SS_SELECTOR:        0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_SS_SELECTOR));
-	printf("VMCS_GUEST_SS_LIMIT:           0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_SS_LIMIT));
-	printf("VMCS_GUEST_SS_ACCESS_RIGHTS:   0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_SS_ACCESS_RIGHTS));
-	printf("VMCS_GUEST_SS_BASE:            0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_SS_BASE));
-	printf("VMCS_GUEST_LDTR_SELECTOR:      0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_LDTR_SELECTOR));
-	printf("VMCS_GUEST_LDTR_LIMIT:         0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_LDTR_LIMIT));
-	printf("VMCS_GUEST_LDTR_ACCESS_RIGHTS: 0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_LDTR_ACCESS_RIGHTS));
-	printf("VMCS_GUEST_LDTR_BASE:          0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_LDTR_BASE));
-	printf("VMCS_GUEST_TR_SELECTOR:        0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_TR_SELECTOR));
-	printf("VMCS_GUEST_TR_LIMIT:           0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_TR_LIMIT));
-	printf("VMCS_GUEST_TR_ACCESS_RIGHTS:   0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_TR_ACCESS_RIGHTS));
-	printf("VMCS_GUEST_TR_BASE:            0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_TR_BASE));
-	printf("VMCS_GUEST_GDTR_LIMIT:         0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_GDTR_LIMIT));
-	printf("VMCS_GUEST_GDTR_BASE:          0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_GDTR_BASE));
-	printf("VMCS_GUEST_IDTR_LIMIT:         0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_LDTR_LIMIT));
-	printf("VMCS_GUEST_IDTR_BASE:          0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_LDTR_BASE));
-	printf("VMCS_GUEST_CR0:                0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_CR0));
-	printf("VMCS_GUEST_CR3:                0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_CR3));
-	printf("VMCS_GUEST_CR4:                0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_CR4));
-	printf("VMCS_GUEST_IA32_EFER:          0x%016llx\n",
-		vmcs_read(vcpu, VMCS_GUEST_IA32_EFER));
-	printf("\n");
-	printf("rip: 0x%016llx rfl: 0x%016llx cr2: 0x%016llx\n",
-		reg_read(vcpu, HV_X86_RIP), reg_read(vcpu, HV_X86_RFLAGS),
-		reg_read(vcpu, HV_X86_CR2));
-	printf("rax: 0x%016llx rbx: 0x%016llx rcx: 0x%016llx rdx: 0x%016llx\n",
-		reg_read(vcpu, HV_X86_RAX), reg_read(vcpu, HV_X86_RBX),
-		reg_read(vcpu, HV_X86_RCX), reg_read(vcpu, HV_X86_RDX));
-	printf("rsi: 0x%016llx rdi: 0x%016llx rbp: 0x%016llx rsp: 0x%016llx\n",
-		reg_read(vcpu, HV_X86_RSI), reg_read(vcpu, HV_X86_RDI),
-		reg_read(vcpu, HV_X86_RBP), reg_read(vcpu, HV_X86_RSP));
-	printf("r8:  0x%016llx r9:  0x%016llx r10: 0x%016llx r11: 0x%016llx\n",
-		reg_read(vcpu, HV_X86_R8), reg_read(vcpu, HV_X86_R9),
-		reg_read(vcpu, HV_X86_R10), reg_read(vcpu, HV_X86_R11));
-	printf("r12: 0x%016llx r13: 0x%016llx r14: 0x%016llx r15: 0x%016llx\n",
-		reg_read(vcpu, HV_X86_R12), reg_read(vcpu, HV_X86_R12),
-		reg_read(vcpu, HV_X86_R14), reg_read(vcpu, HV_X86_R15));
+    // Reading system registers with hv_sys_reg_t type
+    printf("HV_SYS_REG_TTBR0_EL1:          0x%016llx\n", 
+           reg_read(vcpu, (hv_reg_t)HV_SYS_REG_TTBR0_EL1));
+    printf("HV_SYS_REG_TTBR1_EL1:          0x%016llx\n", 
+           reg_read(vcpu, (hv_reg_t)HV_SYS_REG_TTBR1_EL1));
+    printf("HV_SYS_REG_TCR_EL1:            0x%016llx\n", 
+           reg_read(vcpu, (hv_reg_t)HV_SYS_REG_TCR_EL1));
+    printf("HV_SYS_REG_ESR_EL1:            0x%016llx\n", 
+           reg_read(vcpu, (hv_reg_t)HV_SYS_REG_ESR_EL1));
+    printf("HV_SYS_REG_SPSR_EL1:           0x%016llx\n", 
+           reg_read(vcpu, (hv_reg_t)HV_SYS_REG_SPSR_EL1));
+    printf("HV_SYS_REG_ELR_EL1:            0x%016llx\n", 
+           reg_read(vcpu, (hv_reg_t)HV_SYS_REG_ELR_EL1));
+    printf("HV_SYS_REG_SP_EL0:             0x%016llx\n", 
+           reg_read(vcpu, (hv_reg_t)HV_SYS_REG_SP_EL0));
+    printf("HV_SYS_REG_SP_EL1:             0x%016llx\n", 
+           reg_read(vcpu, (hv_reg_t)HV_SYS_REG_SP_EL1));
+    printf("HV_SYS_REG_VBAR_EL1:           0x%016llx\n", 
+           reg_read(vcpu, (hv_reg_t)HV_SYS_REG_VBAR_EL1));
+    printf("HV_SYS_REG_ACTLR_EL1:          0x%016llx\n", 
+           reg_read(vcpu, (hv_reg_t)HV_SYS_REG_ACTLR_EL1));
+    
+    // Reading general-purpose registers with hv_reg_t type
+    printf("x0:  0x%016llx  x1:  0x%016llx  x2:  0x%016llx  x3:  0x%016llx\n",
+           reg_read(vcpu, HV_REG_X0), reg_read(vcpu, HV_REG_X1),
+           reg_read(vcpu, HV_REG_X2), reg_read(vcpu, HV_REG_X3));
+    printf("x4:  0x%016llx  x5:  0x%016llx  x6:  0x%016llx  x7:  0x%016llx\n",
+           reg_read(vcpu, HV_REG_X4), reg_read(vcpu, HV_REG_X5),
+           reg_read(vcpu, HV_REG_X6), reg_read(vcpu, HV_REG_X7));
+    printf("x8:  0x%016llx  x9:  0x%016llx  x10: 0x%016llx  x11: 0x%016llx\n",
+           reg_read(vcpu, HV_REG_X8), reg_read(vcpu, HV_REG_X9),
+           reg_read(vcpu, HV_REG_X10), reg_read(vcpu, HV_REG_X11));
+    printf("x12: 0x%016llx  x13: 0x%016llx  x14: 0x%016llx  x15: 0x%016llx\n",
+           reg_read(vcpu, HV_REG_X12), reg_read(vcpu, HV_REG_X13),
+           reg_read(vcpu, HV_REG_X14), reg_read(vcpu, HV_REG_X15));
+    printf("x16: 0x%016llx  x17: 0x%016llx  x18: 0x%016llx  x19: 0x%016llx\n",
+           reg_read(vcpu, HV_REG_X16), reg_read(vcpu, HV_REG_X17),
+           reg_read(vcpu, HV_REG_X18), reg_read(vcpu, HV_REG_X19));
+    printf("x20: 0x%016llx  x21: 0x%016llx  x22: 0x%016llx  x23: 0x%016llx\n",
+           reg_read(vcpu, HV_REG_X20), reg_read(vcpu, HV_REG_X21),
+           reg_read(vcpu, HV_REG_X22), reg_read(vcpu, HV_REG_X23));
+    printf("x24: 0x%016llx  x25: 0x%016llx  x26: 0x%016llx  x27: 0x%016llx\n",
+           reg_read(vcpu, HV_REG_X24), reg_read(vcpu, HV_REG_X25),
+           reg_read(vcpu, HV_REG_X26), reg_read(vcpu, HV_REG_X27));
+    printf("x28: 0x%016llx  fp:  0x%016llx  lr:  0x%016llx  sp_el0:  0x%016llx\n",
+           reg_read(vcpu, HV_REG_X28), reg_read(vcpu, HV_REG_FP),
+           reg_read(vcpu, HV_REG_LR), reg_read(vcpu, HV_REG_SP_EL0));
 }
+
 
 #ifdef XHYVE_CONFIG_TRACE
 static const char *
@@ -451,7 +397,6 @@ vmx_init(void)
 			xhyve_abort("hv_vm_create unknown error %#010x\n", error);
 	}
 
-#if 0
 	/*
 	 * Check support for optional features by testing them
 	 * as individual bits
@@ -460,6 +405,7 @@ vmx_init(void)
 	cap_monitor_trap = 1;
 	cap_pause_exit = 1;
 
+#if 0
 	/* FIXME */
 	cr0_ones_mask = cr4_ones_mask = 0;
 	cr0_zeros_mask = cr4_zeros_mask = 0;
@@ -2318,6 +2264,8 @@ static const hv_x86_reg_t hvregs[] = {
 };
 */
 
+/* Don't use this */
+#if 0
 static const aarch64_reg_t aarch64regs[] = {
     AARCH64_X0,
     AARCH64_X1,
@@ -2352,11 +2300,53 @@ static const aarch64_reg_t aarch64regs[] = {
     AARCH64_X30, // Link Register (LR)
     AARCH64_SP   // Stack Pointer (SP)
 };
+#endif
+
+typedef enum {
+    // General-Purpose Registers (GPRs)
+    HV_REG_X0,
+    HV_REG_X1,
+    HV_REG_X2,
+    HV_REG_X3,
+    HV_REG_X4,
+    HV_REG_X5,
+    HV_REG_X6,
+    HV_REG_X7,
+    HV_REG_X8,
+    HV_REG_X9,
+    HV_REG_X10,
+    HV_REG_X11,
+    HV_REG_X12,
+    HV_REG_X13,
+    HV_REG_X14,
+    HV_REG_X15,
+    HV_REG_X16,
+    HV_REG_X17,
+    HV_REG_X18,
+    HV_REG_X19,
+    HV_REG_X20,
+    HV_REG_X21,
+    HV_REG_X22,
+    HV_REG_X23,
+    HV_REG_X24,
+    HV_REG_X25,
+    HV_REG_X26,
+    HV_REG_X27,
+    HV_REG_X28,
+    HV_REG_FP,  // Frame Pointer (x29)
+    HV_REG_LR,  // Link Register (x30)
+    HV_REG_SP,  // Stack Pointer
+    HV_REG_PC,  // Program Counter
+
+    // System Registers
+    HV_REG_CPSR,  // Current Program Status Register
+} hv_reg_t;
+
 
 static int
 vmx_getreg(UNUSED void *arg, int vcpu, enum vm_reg_name reg, uint64_t *retval)
 {
-	hv_x86_reg_t hvreg;
+	hv_reg_t hvreg;
 
 	if (reg == VM_REG_GUEST_INTR_SHADOW)
 		return (vmx_get_intr_shadow(vcpu, retval));
@@ -2375,7 +2365,7 @@ vmx_setreg(void *arg, int vcpu, enum vm_reg_name reg, uint64_t val)
 {
 	int error, shadow;
 	uint64_t ctls;
-	hv_x86_reg_t hvreg;
+	hv_reg_t hvreg;
 	struct vmx *vmx = arg;
 
 	if (reg == VM_REG_GUEST_INTR_SHADOW)
