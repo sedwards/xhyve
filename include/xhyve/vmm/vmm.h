@@ -103,7 +103,8 @@ struct vmm_ops {
 	vmi_interrupt vcpu_interrupt;
 };
 
-extern struct vmm_ops vmm_ops_intel;
+//extern struct vmm_ops vmm_ops_intel;
+extern struct vmm_ops vmm_ops_aarch64;
 
 int vmm_init(void);
 int vmm_cleanup(void);

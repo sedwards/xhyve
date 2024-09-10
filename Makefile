@@ -21,6 +21,7 @@ VMM_SRC := \
 	src/vmm/vmm_util.c \
 	src/vmm/vmm_api.c \
 	src/vmm/intel/vmx.c \
+	src/vmm/aarch64/vmx.c \
 	src/vmm/intel/vmx_msr.c \
 	src/vmm/intel/vmcs.c \
 	src/vmm/io/vatpic.c \

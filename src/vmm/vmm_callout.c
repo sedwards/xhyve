@@ -197,6 +197,7 @@ int callout_reset_sbt(struct callout *c, sbintime_t sbt, sbintime_t precision,
 }
 
 void callout_system_init(void) {
+  printf("callout_system_init\n");
   if (initialized) {
     return;
   }
@@ -208,4 +209,6 @@ void callout_system_init(void) {
   tc_precexp = 4; // by default in sys/kern/kern_tc.c
 
   initialized = true;
+  printf("callout_system_init completed\n");
 }
+

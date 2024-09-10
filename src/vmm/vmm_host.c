@@ -39,20 +39,20 @@ static struct xsave_limits vmm_xsave_limits;
 void
 vmm_host_state_init(void)
 {
+        printf("vmm_host_state_init\n");
 	uint32_t avx1_0, regs[4];
 	size_t ln;
 
 	vmm_xsave_limits.xsave_enabled = 0;
 
 	ln = sizeof(uint32_t);
-#if 0
-	if (!sysctlbyname("hw.optional.avx1_0", &avx1_0, &ln, NULL, 0) && avx1_0) {
-		cpuid_count(0xd, 0x0, regs);
-		vmm_xsave_limits.xsave_enabled = 1;
-		vmm_xsave_limits.xcr0_allowed = XFEATURE_AVX;
-		vmm_xsave_limits.xsave_max_size = regs[1];
-	}
-#endif
+//	if (!sysctlbyname("hw.optional.avx1_0", &avx1_0, &ln, NULL, 0) && avx1_0) {
+//		cpuid_count(0xd, 0x0, regs);
+//		vmm_xsave_limits.xsave_enabled = 1;
+//		vmm_xsave_limits.xcr0_allowed = XFEATURE_AVX;
+//		vmm_xsave_limits.xsave_max_size = regs[1];
+        
+        printf("vmm_host_state_init complet\n");
 }
 
 const struct xsave_limits *

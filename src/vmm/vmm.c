@@ -221,6 +221,7 @@ vcpu_init(struct vm *vm, int vcpu_id, bool create)
 }
 
 int vcpu_create(struct vm *vm, int vcpu) {
+	printf("vcpu_create");
 	if (vcpu < 0 || vcpu >= VM_MAXCPU)
 		xhyve_abort("vcpu_create: invalid cpuid %d\n", vcpu);
 
@@ -237,6 +238,7 @@ void vcpu_destroy(struct vm *vm, int vcpu) {
 int
 vcpu_trace_exceptions(void)
 {
+	printf("vcpu_trace\n");
 	return (trace_guest_exceptions);
 }
 
@@ -256,6 +258,7 @@ vm_exitinfo(struct vm *vm, int cpuid)
 int
 vmm_init(void)
 {
+	printf("vmm_init\n");
 	int error;
 
 	vmm_host_state_init();
@@ -271,6 +274,7 @@ vmm_init(void)
 	if (error == 0)
 		vmm_initialized = 1;
 
+	printf("vmm_init completed\n");
 	return (error);
 }
 
@@ -290,6 +294,7 @@ vmm_cleanup(void) {
 static void
 vm_init(struct vm *vm, bool create)
 {
+	printf("vm_init\n");
 	int vcpu;
 
 	if (create) {
@@ -312,14 +317,18 @@ vm_init(struct vm *vm, bool create)
 	vm->suspend = 0;
 	CPU_ZERO(&vm->suspended_cpus);
 
-	for (vcpu = 0; vcpu < VM_MAXCPU; vcpu++) {
-		vcpu_init(vm, vcpu, create);
-	}
+        /* Lets only do one CPU for now. Better to learn to crawl before we walk */
+	//for (vcpu = 0; vcpu < VM_MAXCPU; vcpu++) {
+	//	vcpu_init(vm, vcpu, create);
+	//}
+
+	printf("vm_init successful\n");
 }
 
 int
 vm_create(struct vm **retvm)
 {
+	printf("vm_create\n");
 	struct vm *vm;
 
 	if (!vmm_initialized)
@@ -335,6 +344,9 @@ vm_create(struct vm **retvm)
 	vm_init(vm, true);
 
 	*retvm = vm;
+        
+        
+	printf("vm_create successful\n");
 	return (0);
 }
 
@@ -408,12 +420,14 @@ vm_reinit(struct vm *vm)
 const char *
 vm_name(UNUSED struct vm *vm)
 {
+	printf("vm_name\n");
 	return "VM";
 }
 
 bool
 vm_mem_allocated(struct vm *vm, uint64_t gpa)
 {
+	printf("vm_mem_allocated\n");
 	int i;
 	uint64_t gpabase, gpalimit;
 
@@ -430,6 +444,7 @@ vm_mem_allocated(struct vm *vm, uint64_t gpa)
 int
 vm_malloc(struct vm *vm, uint64_t gpa, size_t len, uint64_t prot)
 {
+	printf("vm_malloc\n");
 	int available, allocated;
 	struct mem_seg *seg;
 	void *object;

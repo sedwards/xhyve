@@ -37,6 +37,7 @@
 int
 vmm_mem_init(void)
 {
+	printf("vmm_mem_init is a void return 0 always\n");
 	return (0);
 }
 
