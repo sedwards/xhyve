@@ -33,6 +33,8 @@
 #include <Hypervisor/hv_vmx.h>
 #include <xhyve/vmm/vmm.h>
 
+#ifndef __aarch64__
+
 int	vmcs_getreg(int vcpuid, int ident, uint64_t *rv);
 int	vmcs_setreg(int vcpuid, int ident, uint64_t val);
 int	vmcs_getdesc(int vcpuid, int ident, struct seg_desc *desc);
@@ -384,3 +386,5 @@ vmcs_write(int vcpuid, uint32_t encoding, uint64_t val)
  * Exit qualification for APIC-write VM exit
  */
 #define	APIC_WRITE_OFFSET(qual)		((qual) & 0xFFF)
+#endif /* __aarch64__ */
+

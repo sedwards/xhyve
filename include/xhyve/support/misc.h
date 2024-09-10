@@ -51,6 +51,7 @@ typedef	unsigned short u_short;
 typedef	unsigned int u_int;
 typedef	unsigned long u_long;
 
+#if 0
 static inline void cpuid_count(uint32_t ax, uint32_t cx, uint32_t *p) {
 	__asm__ __volatile__ ("cpuid"
 		: "=a" (p[0]), "=b" (p[1]), "=c" (p[2]), "=d" (p[3])
@@ -62,6 +63,7 @@ static inline void do_cpuid(unsigned ax, unsigned *p) {
 		: "=a" (p[0]), "=b" (p[1]), "=c" (p[2]), "=d" (p[3])
 		:  "0" (ax));
 }
+#endif
 
 /*
  * read_uint16_unaligned, write_uint16_unaligned,
@@ -102,3 +104,4 @@ static inline void write_uint64_unaligned(void *pointer, uint64_t data) {
     uint64_t *castPointer = (uint64_t *)pointer;
     *castPointer = data;
 }
+

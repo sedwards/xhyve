@@ -44,14 +44,14 @@ void *
 vmm_mem_alloc(uint64_t gpa, size_t size, uint64_t prot)
 {
 	void *object;
-    hv_memory_flags_t hvProt;
+    //hv_memory_flags_t hvProt;
 
 	object = valloc(size);
 
 	if (!object) {
 		xhyve_abort("vmm_mem_alloc failed\n");
 	}
-
+#ifndef __arm64__
     hvProt = (prot & XHYVE_PROT_READ) ? HV_MEMORY_READ : 0;
     hvProt |= (prot & XHYVE_PROT_WRITE) ? HV_MEMORY_WRITE : 0;
     hvProt |= (prot & XHYVE_PROT_EXECUTE) ? HV_MEMORY_EXEC : 0;
@@ -60,13 +60,13 @@ vmm_mem_alloc(uint64_t gpa, size_t size, uint64_t prot)
 	{
 		xhyve_abort("hv_vm_map failed\n");
 	}
-
+#endif
 	return object;
 }
 
 void
 vmm_mem_free(uint64_t gpa, size_t size, void *object)
 {
-	hv_vm_unmap(gpa, size);
+	//hv_vm_unmap(gpa, size);
 	free(object);
 }

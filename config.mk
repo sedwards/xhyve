@@ -32,11 +32,11 @@ CFLAGS_OPT := \
   -fstrict-aliasing
 
 CFLAGS_WARN := \
-  -Weverything \
   -Werror \
+  -Wno-incompatible-pointer-types \
+  -Wno-asm-operand-widths \
   -Wno-unknown-warning-option \
-  -Wno-reserved-id-macro \
-  -pedantic
+  -Wno-reserved-id-macro
 
 CFLAGS_DIAG := \
   -fmessage-length=152 \
@@ -48,7 +48,6 @@ CFLAGS_DBG := \
   -g
 
 CFLAGS := \
-  -arch x86_64 \
   -x c \
   -std=c11 \
   -fno-common \
@@ -67,7 +66,6 @@ LDFLAGS_DBG := \
   -Xlinker -object_path_lto
 
 LDFLAGS := \
-  -arch x86_64 \
   -framework Hypervisor \
   -framework vmnet \
   -lz \

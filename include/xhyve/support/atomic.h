@@ -31,6 +31,7 @@
 #include <stdint.h>
 #include <xhyve/support/misc.h>
 
+#ifndef __arm64__
 #define	__compiler_membar()	__asm __volatile(" " : : : "memory")
 
 #define	mb()	__asm __volatile("mfence;" : : : "memory")
@@ -441,3 +442,8 @@ atomic_swap_long(volatile u_long *p, u_long v)
 #define	atomic_cmpset_rel_ptr	atomic_cmpset_rel_long
 #define	atomic_swap_ptr		atomic_swap_long
 #define	atomic_readandclear_ptr	atomic_readandclear_long
+
+#else
+#include "atomic_arm.h"
+#endif
+

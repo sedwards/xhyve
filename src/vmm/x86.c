@@ -27,6 +27,7 @@
  * $FreeBSD$
  */
 
+#ifndef __ARM64__
 #include <stdint.h>
 #include <strings.h>
 #include <xhyve/support/misc.h>
@@ -464,3 +465,4 @@ x86_emulate_cpuid(struct vm *vm, int vcpu_id,
 
 	return (1);
 }
+#endif

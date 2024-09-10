@@ -264,7 +264,7 @@ vmm_init(void)
 	if (error)
 		return (error);
 	
-	ops = &vmm_ops_intel;
+	//ops = &vmm_ops_intel;
 
 	error = VMM_INIT();
 
@@ -809,7 +809,7 @@ vm_handle_hlt(struct vm *vm, int vcpuid, bool intr_disabled)
 			VCPU_CTR0(vm, vcpuid, "Halted");
 			if (!vcpu_halted && halt_detection_enabled) {
 				vcpu_halted = 1;
-				CPU_SET_ATOMIC(((unsigned) vcpuid), &vm->halted_cpus);
+				//CPU_SET_ATOMIC(((unsigned) vcpuid), &vm->halted_cpus);
 			}
 			if (CPU_CMP(&vm->halted_cpus, &vm->active_cpus) == 0) {
 				vm_halted = 1;
@@ -836,8 +836,8 @@ vm_handle_hlt(struct vm *vm, int vcpuid, bool intr_disabled)
 		//vmm_stat_incr(vm, vcpuid, VCPU_IDLE_TICKS, ticks - t);
 	}
 
-	if (vcpu_halted)
-		CPU_CLR_ATOMIC(((unsigned) vcpuid), &vm->halted_cpus);
+	//if (vcpu_halted)
+		//CPU_CLR_ATOMIC(((unsigned) vcpuid), &vm->halted_cpus);
 
 	vcpu_unlock(vcpu);
 
@@ -938,7 +938,7 @@ vm_handle_suspend(struct vm *vm, int vcpuid, bool *retu)
 	done = 0;
 	vcpu = &vm->vcpu[vcpuid];
 
-	CPU_SET_ATOMIC(((unsigned) vcpuid), &vm->suspended_cpus);
+	//CPU_SET_ATOMIC(((unsigned) vcpuid), &vm->suspended_cpus);
 
 	/*
 	 * Wait until all 'active_cpus' have suspended themselves.
@@ -1634,7 +1634,7 @@ vm_activate_cpu(struct vm *vm, int vcpuid)
 		return (EBUSY);
 
 	VCPU_CTR0(vm, vcpuid, "activated");
-	CPU_SET_ATOMIC(((unsigned) vcpuid), &vm->active_cpus);
+	//CPU_SET_ATOMIC(((unsigned) vcpuid), &vm->active_cpus);
 	return (0);
 }
 

@@ -57,9 +57,9 @@ vmx_ctl_allows_zero_setting(uint64_t msr_val, int bitpos)
 		return (FALSE);
 }
 
-int vmx_set_ctlreg(int vcpu_id, uint32_t field,
-				   hv_vmx_capability_t cap_field, uint32_t ones_mask,
-				   uint32_t zeros_mask, uint32_t *retval)
+#ifndef __arm64__
+int vmx_set_ctlreg(hv_vmx_capability_t cap_field, uint32_t ones_mask,
+	uint32_t zeros_mask, uint32_t *retval)
 {
 	int i;
 	uint64_t cap;
@@ -73,8 +73,6 @@ int vmx_set_ctlreg(int vcpu_id, uint32_t field,
 	if (hv_vmx_read_capability(cap_field, &cap)) {
 		return EINVAL;
 	}
-
-	uint64_t current = vmcs_read(vcpu_id, field);
 
 	for (i = 0; i < 32; i++) {
 		one_allowed = vmx_ctl_allows_one_setting(cap, i);
@@ -99,21 +97,24 @@ int vmx_set_ctlreg(int vcpu_id, uint32_t field,
 			}
 			*retval |= 1 << i;
 		} else {
-			/* don't care */
+			/* Hypervisor doesn't care */
 			if (zeros_mask & (1 << i)){
 				*retval &= ~(1 << i);
 			} else if (ones_mask & (1 << i)) {
 				*retval |= 1 << i;
 			} else {
-				// Unknown: keep existing value.
-				*retval = (*retval & ~(1 << i)) | (current & (1 << i));
+				/* We don't care either: inherit the system default */
+				fprintf(stderr,
+					"vmx_set_ctlreg: cap_field: %d bit: %d unspecified "
+					"don't care: bit is %d\n", cap_field, i,
+					(*retval & (1 << i))?1:0);
 			}
 		}
 	}
 
 	return (0);
 }
-
+#endif
 static uint64_t misc_enable;
 static uint64_t platform_info;
 static uint64_t turbo_ratio_limit;
@@ -142,7 +143,7 @@ vmx_msr_init(void) {
 	uint64_t bus_freq, tsc_freq, ratio;
 	size_t length;
 	int i;
-	
+
 	length = sizeof(uint64_t);
 
 	if (sysctlbyname("machdep.tsc.frequency", &tsc_freq, &length, NULL, 0)) {
@@ -202,6 +203,7 @@ vmx_msr_init(void) {
 	}
 }
 
+#ifndef __arm64__
 void
 vmx_msr_guest_init(struct vmx *vmx, int vcpuid)
 {
@@ -290,7 +292,7 @@ vmx_wrmsr(struct vmx *vmx, int vcpuid, u_int num, uint64_t val)
 	uint64_t *guest_msrs;
 	uint64_t changed;
 	int error;
-	
+
 	guest_msrs = vmx->guest_msrs[vcpuid];
 	error = 0;
 
@@ -351,3 +353,5 @@ vmx_wrmsr(struct vmx *vmx, int vcpuid, u_int num, uint64_t val)
 
 	return (error);
 }
+#endif
+

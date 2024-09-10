@@ -29,6 +29,8 @@
 
 #include <stdint.h>
 #include <errno.h>
+
+#ifndef __aarch64__
 #include <xhyve/vmm/intel/vmx.h>
 #include <xhyve/vmm/intel/vmcs.h>
 
@@ -243,3 +245,5 @@ vmcs_getdesc(int vcpuid, int seg, struct seg_desc *desc)
 
 	return (0);
 }
+#endif /* __aarch64__ */
+

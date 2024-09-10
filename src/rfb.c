@@ -279,6 +279,7 @@ rfb_recv_set_encodings_msg(struct rfb_softc *rc, int cfd)
 static __inline uint32_t
 fast_crc32(void *buf, size_t len, uint32_t crcval)
 {
+#ifndef __arm64__
 	uint32_t q = (uint32_t)len / sizeof(uint32_t);
 	uint32_t *p = (uint32_t *)buf;
 
@@ -292,6 +293,9 @@ fast_crc32(void *buf, size_t len, uint32_t crcval)
 	}
 
 	return (crcval);
+#else
+	return 0;
+#endif
 }
 
 static long
@@ -963,6 +967,7 @@ rfb_thr(void *arg)
 static int
 sse42_supported(void)
 {
+#ifndef __arm64__
 	u_int cpu_registers[4], ecx;
 
 	do_cpuid(1, cpu_registers);
@@ -970,6 +975,9 @@ sse42_supported(void)
 	ecx = cpu_registers[2];
 
 	return ((ecx & CPUID2_SSE42) != 0);
+#else
+	return 0;
+#endif
 }
 
 int

@@ -1887,7 +1887,7 @@ restart:
 			vm_inject_pf(vm, vcpuid, pfcode, gla);
 			goto fault;
 		}
-
+#if 0
 		/* Set the accessed bit in the page table entry */
 		if ((pte & PG_A) == 0) {
 			if (atomic_cmpset_64(((volatile u_long *) &ptpbase[ptpindex]),
@@ -1895,7 +1895,7 @@ restart:
 				goto restart;
 			}
 		}
-
+#endif
 		if (nlevels > 0 && (pte & PG_PS) != 0) {
 			if (pgsize > 1 * GB) {
 				pfcode = pf_error_code(usermode, prot, 1, pte);
@@ -1907,7 +1907,7 @@ restart:
 
 		ptpphys = pte;
 	}
-
+#if 0
 	/* Set the dirty bit in the page table entry if necessary */
 	if (writable && (pte & PG_M) == 0) {
 		if (atomic_cmpset_64(((volatile u_long *) &ptpbase[ptpindex]), pte,
@@ -1916,7 +1916,7 @@ restart:
 			goto restart;
 		}
 	}
-
+#endif
 	/* Zero out the lower 'ptpshift' bits and the upper 12 bits */
 	pte >>= ptpshift; pte <<= (ptpshift + 12); pte >>= 12;
 	*gpa = pte | (gla & (pgsize - 1));

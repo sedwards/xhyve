@@ -89,7 +89,7 @@ init_msr(void)
 	u_int regs[4];
 	u_int cpu_vendor[4];
 
-	do_cpuid(0, regs);
+	//do_cpuid(0, regs);
 	cpu_vendor[0] = regs[1];
 	cpu_vendor[1] = regs[3];
 	cpu_vendor[2] = regs[2];
