@@ -51,6 +51,8 @@
 #include <xhyve/vmm/io/vlapic.h>
 #include <xhyve/vmm/io/vlapic_priv.h>
 #include <xhyve/vmm/aarch64.h>
+#include <xhyve/vmm/aarch64/vmcs.h>
+#include <xhyve/vmm/aarch64/vmx_msr.h>
 #include <xhyve/dtrace.h>
 
 #define PROCBASED_CTLS_WINDOW_SETTING \
@@ -366,10 +368,195 @@ vmx_cleanup(void)
 	return (0);
 }
 
+#include <Hypervisor/Hypervisor.h>
+
+// Function prototype for creating a VM
+//int hv_vm_create(hv_vm *vm);
+
+
+#include <stdio.h>
+
+#include <sys/sysctl.h>
+#include <stdio.h>
+#include <stdint.h>
+
+// Function to compute the number of virtual CPUs
+int compute_cpu_count() {
+    int total_available_cpus;
+    size_t size = sizeof(total_available_cpus);
+    int result = sysctlbyname("hw.ncpu", &total_available_cpus, &size, NULL, 0);
+    if (result != 0) {
+        perror("sysctlbyname(hw.ncpu) failed");
+        return -1; // Indicate an error
+    }
+
+    int virtual_cpu_count = total_available_cpus <= 1 ? 1 : total_available_cpus - 1;
+    // Example min/max values, adjust according to actual constraints
+    const int MIN_CPU_COUNT = 1;
+    const int MAX_CPU_COUNT = 32;
+    virtual_cpu_count = virtual_cpu_count < MIN_CPU_COUNT ? MIN_CPU_COUNT : virtual_cpu_count;
+    virtual_cpu_count = virtual_cpu_count > MAX_CPU_COUNT ? MAX_CPU_COUNT : virtual_cpu_count;
+
+    return virtual_cpu_count;
+}
+
+// Function to compute memory size
+uint64_t compute_memory_size() {
+    // Example: Set to 4 GB
+    uint64_t memory_size = 4 * 1024 * 1024 * 1024;
+    // Example min/max values, adjust according to actual constraints
+    const uint64_t MIN_MEMORY_SIZE = 1 * 1024 * 1024 * 1024; // 1 GB
+    const uint64_t MAX_MEMORY_SIZE = 64 * 1024 * 1024 * 1024; // 64 GB
+
+    memory_size = memory_size < MIN_MEMORY_SIZE ? MIN_MEMORY_SIZE : memory_size;
+    memory_size = memory_size > MAX_MEMORY_SIZE ? MAX_MEMORY_SIZE : memory_size;
+
+    return memory_size;
+}
+
+// Define a structure to hold VM context
+struct hv_vm {
+    hv_vm_ref vm_ref; // Hypothetical reference to the VM context
+};
+
+// Define the types for VM context and reference
+typedef struct hv_vm *hv_vm_ref; // Pointer to VM context
+typedef struct hv_vm {
+    // Add VM-related fields here
+} hv_vm;
+
+// Function to create a VM context
+// Parameters:
+// - vm_ref: Pointer to a variable where the VM reference will be stored
+// Returns: 0 on success, non-zero on failure
+int hv_create_vm_context(hv_vm_ref *vm_ref) {
+    if (vm_ref == NULL) {
+        return -1; // Return error if the provided reference is NULL
+    }
+
+    // Create a VM context using the Hypervisor framework
+    hv_vm vm = NULL;
+    int result = hv_vm_create(&vm); // Create VM context
+
+    if (result != HV_SUCCESS) {
+        return result; // Return error code if VM creation fails
+    }
+
+    *vm_ref = vm; // Store the created VM context in the provided reference
+    return 0; // Return success
+}
+
+// Function to create a VM
+int hv_vm_create(hv_vm *vm)
+{
+    // Check if the provided pointer is valid
+    if (vm == NULL) {
+        return -1; // Invalid argument
+    }
+
+    // Hypothetical API call to create a VM context
+    // In practice, this would involve calling Hypervisor.framework APIs
+    int result = hv_create_vm_context(&vm->vm_ref); // Example function
+
+    // Check for errors in VM creation
+    if (result != HV_SUCCESS) {
+        return result; // Return the error code from the API
+    }
+
+    // Additional setup and configuration could go here
+
+    return HV_SUCCESS; // Success
+}
+
+// Hypothetical API to create a VM context (for illustration purposes)
+int hv_create_vm_context(hv_vm_ref *vm_ref)
+{
+    // Simulate successful VM creation
+    // In practice, this function would interact with the Hypervisor.framework
+    *vm_ref = 1; // Example VM reference ID
+    return HV_SUCCESS;
+}
+
+#if 0
+// Example usage
+int main(void)
+{
+    hv_vm my_vm;
+    int error = hv_vm_create(&my_vm);
+
+    if (error != HV_SUCCESS) {
+        printf("Error creating VM: %d\n", error);
+        return error;
+    }
+
+    printf("VM created successfully!\n");
+    return 0;
+}
+#endif
+
+// Hypothetical structures for VM and vCPU context
+typedef struct {
+    // VM context structure
+    void *vm_ref; // Reference to the VM context
+} hv_vm;
+
+typedef struct {
+    // vCPU context structure
+    int id;
+    void *vcpu_ref; // Reference to the vCPU context
+} hv_vcpu;
+
+// Hypothetical function to create a vCPU
+int hv_vcpu_create(hv_vm *vm, int vcpu_id, hv_vcpu *vcpu) {
+    if (!vm || !vcpu) {
+        return -1; // Invalid arguments
+    }
+
+    // Hypothetical API call to create a vCPU context
+    // In practice, this would involve calling Hypervisor.framework APIs
+    int result = create_vcpu_context(vm->vm_ref, vcpu_id, &vcpu->vcpu_ref);
+    if (result != 0) {
+        return -1; // Error creating vCPU context
+    }
+
+    vcpu->id = vcpu_id;
+    return 0; // Success
+}
+
+// Hypothetical function to simulate creating a vCPU context
+int create_vcpu_context(void *vm_ref, int vcpu_id, void **vcpu_ref) {
+    // Simulate creation of vCPU context
+    *vcpu_ref = malloc(sizeof(void*)); // Allocate memory for vCPU context
+    if (!*vcpu_ref) {
+        return -1; // Memory allocation failure
+    }
+    // Initialize vCPU context here if needed
+    return 0; // Success
+}
+
 static int
 vmx_init(void)
 {
-	int error = hv_vm_create(HV_VM_DEFAULT);
+/*
+    hv_vm my_vm;
+    hv_vcpu my_vcpu;
+    int vcpu_id = 0; // Example vCPU ID
+
+    // Initialize VM context (omitted for brevity)
+    // ...
+
+    // Create a vCPU
+    if (hv_vcpu_create(&my_vm, vcpu_id, &my_vcpu) == 0) {
+        printf("vCPU %d created successfully.\n", vcpu_id);
+    } else {
+        printf("Failed to create vCPU %d.\n", vcpu_id);
+    }
+*/
+
+    hv_vm my_vm;
+    int error = hv_vm_create(&my_vm);
+
+//	int error = hv_vm_create(HV_VM_DEFAULT);
 	switch (error) {
 		case HV_SUCCESS:
 			break;
@@ -448,6 +635,7 @@ vmx_setup_cr_shadow(int vcpuid, int which, uint32_t initial)
 
 	return (0);
 }
+
 #define	vmx_setup_cr0_shadow(vcpuid,init) vmx_setup_cr_shadow(vcpuid, 0, (init))
 #define	vmx_setup_cr4_shadow(vcpuid,init) vmx_setup_cr_shadow(vcpuid, 4, (init))
 

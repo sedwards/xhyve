@@ -34,6 +34,7 @@ CFLAGS_OPT := \
 CFLAGS_WARN := \
   -Werror \
   -Wno-incompatible-pointer-types \
+  -Wno-implicit-function-declaration \
   -Wno-asm-operand-widths \
   -Wno-unknown-warning-option \
   -Wno-reserved-id-macro
