@@ -20,8 +20,8 @@ struct gic_page {
 
 struct vmx {
     struct gic_page gic_page[VM_MAXCPU]; /* one GIC page per vcpu */
-    struct vmxcap cap[VM_MAXCPU];
-    struct vmxstate state[VM_MAXCPU];
+    //struct vmxcap cap[VM_MAXCPU];
+    //struct vmxstate state[VM_MAXCPU];
     struct vm *vm;
 };
 

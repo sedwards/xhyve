@@ -37,6 +37,8 @@
 #include <Hypervisor/hv.h>
 #include <Hypervisor/hv_vmx.h>
 #include <Hypervisor/hv_vcpu.h>
+#include <Hypervisor/hv_base.h>
+#include <Hypervisor/hv_vm_types.h>
 #include <xhyve/support/misc.h>
 #include <xhyve/support/atomic.h>
 #include <xhyve/support/psl.h>
@@ -55,16 +57,16 @@
 #include <xhyve/vmm/aarch64/vmx_msr.h>
 #include <xhyve/dtrace.h>
 
-#define PROCBASED_CTLS_WINDOW_SETTING \
-	(PROCBASED_INT_WINDOW_EXITING | \
-	 PROCBASED_NMI_WINDOW_EXITING)
+//#define PROCBASED_CTLS_WINDOW_SETTING \
+//	(PROCBASED_INT_WINDOW_EXITING | \
+//	 PROCBASED_NMI_WINDOW_EXITING)
 #define PROCBASED_CTLS_ONE_SETTING \
 	(PROCBASED_SECONDARY_CONTROLS | \
 	 PROCBASED_MWAIT_EXITING | \
 	 PROCBASED_MONITOR_EXITING | \
 	 PROCBASED_IO_EXITING | \
 	 PROCBASED_MSR_BITMAPS | \
-	 PROCBASED_CTLS_WINDOW_SETTING | \
+	 //PROCBASED_CTLS_WINDOW_SETTING | \
 	 PROCBASED_CR8_LOAD_EXITING | \
 	 PROCBASED_CR8_STORE_EXITING | \
 	 PROCBASED_HLT_EXITING | \
@@ -120,6 +122,7 @@
 
 #define	HANDLED		1
 #define	UNHANDLED	0
+#define HV_VCPU_DEFAULT 1
 
 static uint32_t pinbased_ctls, procbased_ctls, procbased_ctls2;
 static uint32_t exit_ctls, entry_ctls;
@@ -147,7 +150,9 @@ static int cap_monitor_trap;
 // #define	APIC_ACCESS_ADDRESS	0xFFFFF000
 
 static int vmx_getdesc(void *arg, int vcpu, enum vm_reg_name reg, struct seg_desc *desc);
+static int vmx_setdesc(void *arg, int vcpu, enum vm_reg_name reg, struct seg_desc *desc);
 static int vmx_getreg(void *arg, int vcpu, enum vm_reg_name reg, uint64_t *retval);
+static int vmx_setreg(void *arg, int vcpu, enum vm_reg_name reg, uint64_t val);
 
 /* FIXME - Should be read from hv.h, investigate */
 typedef uint32_t hv_vcpuid_t;
@@ -199,8 +204,8 @@ static void hvdump(int vcpu) {
            reg_read(vcpu, (hv_reg_t)HV_SYS_REG_SP_EL1));
     printf("HV_SYS_REG_VBAR_EL1:           0x%016llx\n", 
            reg_read(vcpu, (hv_reg_t)HV_SYS_REG_VBAR_EL1));
-    printf("HV_SYS_REG_ACTLR_EL1:          0x%016llx\n", 
-           reg_read(vcpu, (hv_reg_t)HV_SYS_REG_ACTLR_EL1));
+   // printf("HV_SYS_REG_ACTLR_EL1:          0x%016llx\n", 
+     //      reg_read(vcpu, (hv_reg_t)HV_SYS_REG_ACTLR_EL1));
     
     // Reading general-purpose registers with hv_reg_t type
     printf("x0:  0x%016llx  x1:  0x%016llx  x2:  0x%016llx  x3:  0x%016llx\n",
@@ -224,9 +229,8 @@ static void hvdump(int vcpu) {
     printf("x24: 0x%016llx  x25: 0x%016llx  x26: 0x%016llx  x27: 0x%016llx\n",
            reg_read(vcpu, HV_REG_X24), reg_read(vcpu, HV_REG_X25),
            reg_read(vcpu, HV_REG_X26), reg_read(vcpu, HV_REG_X27));
-    printf("x28: 0x%016llx  fp:  0x%016llx  lr:  0x%016llx  sp_el0:  0x%016llx\n",
-           reg_read(vcpu, HV_REG_X28), reg_read(vcpu, HV_REG_FP),
-           reg_read(vcpu, HV_REG_LR), reg_read(vcpu, HV_REG_SP_EL0));
+    //printf("x28: 0x%016llx  fp:  0x%016llx  lr:  0x%016llx  sp_el0:  0x%016llx\n",
+      //     reg_read(vcpu, HV_REG_X28), reg_read(vcpu, HV_REG_FP));
 }
 
 
@@ -373,6 +377,9 @@ vmx_cleanup(void)
 // Function prototype for creating a VM
 //int hv_vm_create(hv_vm *vm);
 
+//hv_return_t
+//hv_vm_create(hv_vm_config_t _Nullable config);
+
 
 #include <stdio.h>
 
@@ -400,13 +407,17 @@ int compute_cpu_count() {
     return virtual_cpu_count;
 }
 
+
+#include <stdint.h>
+
 // Function to compute memory size
 uint64_t compute_memory_size() {
     // Example: Set to 4 GB
-    uint64_t memory_size = 4 * 1024 * 1024 * 1024;
+    uint64_t memory_size = 4ULL * 1024ULL * 1024ULL * 1024ULL;
+    
     // Example min/max values, adjust according to actual constraints
-    const uint64_t MIN_MEMORY_SIZE = 1 * 1024 * 1024 * 1024; // 1 GB
-    const uint64_t MAX_MEMORY_SIZE = 64 * 1024 * 1024 * 1024; // 64 GB
+    const uint64_t MIN_MEMORY_SIZE = 1ULL * 1024ULL * 1024ULL * 1024ULL; // 1 GB
+    const uint64_t MAX_MEMORY_SIZE = 64ULL * 1024ULL * 1024ULL * 1024ULL; // 64 GB
 
     memory_size = memory_size < MIN_MEMORY_SIZE ? MIN_MEMORY_SIZE : memory_size;
     memory_size = memory_size > MAX_MEMORY_SIZE ? MAX_MEMORY_SIZE : memory_size;
@@ -414,16 +425,13 @@ uint64_t compute_memory_size() {
     return memory_size;
 }
 
+#if 0
+// Define the types for VM context and reference
+typedef struct hv_vm *hv_vm_ref; // Pointer to VM context
 // Define a structure to hold VM context
 struct hv_vm {
     hv_vm_ref vm_ref; // Hypothetical reference to the VM context
 };
-
-// Define the types for VM context and reference
-typedef struct hv_vm *hv_vm_ref; // Pointer to VM context
-typedef struct hv_vm {
-    // Add VM-related fields here
-} hv_vm;
 
 // Function to create a VM context
 // Parameters:
@@ -446,8 +454,10 @@ int hv_create_vm_context(hv_vm_ref *vm_ref) {
     return 0; // Return success
 }
 
-// Function to create a VM
-int hv_vm_create(hv_vm *vm)
+// Function prototype for creating a VM
+//int hv_vm_create(hv_vm *vm);
+hv_return_t
+hv_vm_create(hv_vm_config_t _Nullable config)
 {
     // Check if the provided pointer is valid
     if (vm == NULL) {
@@ -477,7 +487,6 @@ int hv_create_vm_context(hv_vm_ref *vm_ref)
     return HV_SUCCESS;
 }
 
-#if 0
 // Example usage
 int main(void)
 {
@@ -492,7 +501,6 @@ int main(void)
     printf("VM created successfully!\n");
     return 0;
 }
-#endif
 
 // Hypothetical structures for VM and vCPU context
 typedef struct {
@@ -507,7 +515,11 @@ typedef struct {
 } hv_vcpu;
 
 // Hypothetical function to create a vCPU
-int hv_vcpu_create(hv_vm *vm, int vcpu_id, hv_vcpu *vcpu) {
+
+hv_return_t
+hv_vcpu_create(hv_vcpu_t *vcpu, hv_vcpu_exit_t * _Nullable * _Nonnull exit,
+    hv_vcpu_config_t _Nullable config);
+
     if (!vm || !vcpu) {
         return -1; // Invalid arguments
     }
@@ -522,6 +534,7 @@ int hv_vcpu_create(hv_vm *vm, int vcpu_id, hv_vcpu *vcpu) {
     vcpu->id = vcpu_id;
     return 0; // Success
 }
+#endif
 
 // Hypothetical function to simulate creating a vCPU context
 int create_vcpu_context(void *vm_ref, int vcpu_id, void **vcpu_ref) {
@@ -533,6 +546,12 @@ int create_vcpu_context(void *vm_ref, int vcpu_id, void **vcpu_ref) {
     // Initialize vCPU context here if needed
     return 0; // Success
 }
+
+//typedef struct hv_vm *hv_vm_ref; // Pointer to VM context
+// Define a structure to hold VM context
+//struct hv_vm {
+//    hv_vm_ref vm_ref; // Hypothetical reference to the VM context
+//};   
 
 static int
 vmx_init(void)
@@ -551,12 +570,8 @@ vmx_init(void)
     } else {
         printf("Failed to create vCPU %d.\n", vcpu_id);
     }
-*/
 
-    hv_vm my_vm;
-    int error = hv_vm_create(&my_vm);
-
-//	int error = hv_vm_create(HV_VM_DEFAULT);
+	int error = hv_vm_create(HV_VM_DEFAULT);
 	switch (error) {
 		case HV_SUCCESS:
 			break;
@@ -565,79 +580,23 @@ vmx_init(void)
 			       "Hypervisor.framework\n");
 			return (error);
 		case HV_BAD_ARGUMENT:
-			/* Should never happen, report to Apple */
 			xhyve_abort("hv_vm_create HV_BAD_ARGUMENT\n");
 		case HV_BUSY:
-			/* Should never happen, report to us (perhaps we need to retry) */
 			xhyve_abort("hv_vm_create HV_BUSY\n");
 		case HV_NO_RESOURCES:
-			/* Don't know if this can happen, report to us */
 			xhyve_abort("hv_vm_create HV_NO_RESOURCES\n");
 		case HV_UNSUPPORTED:
-			/* Don't know if this can happen, report to us */
 			xhyve_abort("hv_vm_create HV_UNSUPPORTED\n");
 		case HV_ERROR:
-			/* An unspecified error happened */
 			xhyve_abort("hv_vm_create HV_ERROR (unspecified error)\n");
 		default:
-			/* Should never happen, report to Apple */
 			xhyve_abort("hv_vm_create unknown error %#010x\n", error);
 	}
-
-	/*
-	 * Check support for optional features by testing them
-	 * as individual bits
-	 */
-	cap_halt_exit = 1;
-	cap_monitor_trap = 1;
-	cap_pause_exit = 1;
-
-#if 0
-	/* FIXME */
-	cr0_ones_mask = cr4_ones_mask = 0;
-	cr0_zeros_mask = cr4_zeros_mask = 0;
-
-	cr0_ones_mask |= (CR0_NE | CR0_ET);
-	cr0_zeros_mask |= (CR0_NW | CR0_CD);
-	cr4_ones_mask = 0x2000;
-#endif
-	vmx_msr_init();
-
+*/
 	return (0);
 }
 
-static int
-vmx_setup_cr_shadow(int vcpuid, int which, uint32_t initial)
-{
-	int error, mask_ident, shadow_ident;
-	uint64_t mask_value;
 
-	if (which != 0 && which != 4)
-		xhyve_abort("vmx_setup_cr_shadow: unknown cr%d", which);
-
-	if (which == 0) {
-		mask_ident = VMCS_CR0_MASK;
-		mask_value = (cr0_ones_mask | cr0_zeros_mask) | (CR0_PG | CR0_PE);
-		shadow_ident = VMCS_CR0_SHADOW;
-	} else {
-		mask_ident = VMCS_CR4_MASK;
-		mask_value = cr4_ones_mask | cr4_zeros_mask;
-		shadow_ident = VMCS_CR4_SHADOW;
-	}
-
-	error = vmcs_setreg(vcpuid, VMCS_IDENT(mask_ident), mask_value);
-	if (error)
-		return (error);
-
-	error = vmcs_setreg(vcpuid, VMCS_IDENT(shadow_ident), initial);
-	if (error)
-		return (error);
-
-	return (0);
-}
-
-#define	vmx_setup_cr0_shadow(vcpuid,init) vmx_setup_cr_shadow(vcpuid, 0, (init))
-#define	vmx_setup_cr4_shadow(vcpuid,init) vmx_setup_cr_shadow(vcpuid, 4, (init))
 
 static void *
 vmx_vm_init(struct vm *vm)
@@ -654,10 +613,11 @@ vmx_vm_init(struct vm *vm)
 
 static int
 vmx_vcpu_init(void *arg, int vcpuid) {
+        int error = 0;
+#if 0
 	uint32_t exc_bitmap;
 	struct vmx *vmx;
 	hv_vcpuid_t hvid;
-	int error;
 
 	vmx = (struct vmx *) arg;
 
@@ -682,7 +642,6 @@ vmx_vcpu_init(void *arg, int vcpuid) {
 	}
 
 	vmx_msr_guest_init(vmx, vcpuid);
-
 	/* Check support for primary processor-based VM-execution controls */
 	procbased_ctls = (uint32_t) vmcs_read(vcpuid, HV_VMX_CAP_PROCBASED);
 	error = vmx_set_ctlreg(HV_VMX_CAP_PROCBASED,
@@ -736,45 +695,13 @@ vmx_vcpu_init(void *arg, int vcpuid) {
 	error = vmx_set_ctlreg(HV_VMX_CAP_ENTRY,
 	    VM_ENTRY_CTLS_ONE_SETTING, VM_ENTRY_CTLS_ZERO_SETTING,
 	    &entry_ctls);
+#endif
 	if (error) {
 		printf("vmx_init: processor does not support desired "
 		    "entry controls\n");
 		return (error);
 	}
 
-	vmcs_write(vcpuid, VMCS_PIN_BASED_CTLS, pinbased_ctls);
-	vmcs_write(vcpuid, VMCS_PRI_PROC_BASED_CTLS, procbased_ctls);
-	vmcs_write(vcpuid, VMCS_SEC_PROC_BASED_CTLS, procbased_ctls2);
-	vmcs_write(vcpuid, VMCS_EXIT_CTLS, exit_ctls);
-	vmcs_write(vcpuid, VMCS_ENTRY_CTLS, entry_ctls);
-
-	/* exception bitmap */
-	if (vcpu_trace_exceptions())
-		exc_bitmap = 0xffffffff;
-	else
-		exc_bitmap = 1 << IDT_MC;
-
-	vmcs_write(vcpuid, VMCS_EXCEPTION_BITMAP, exc_bitmap);
-
-	vmx->cap[vcpuid].set = 0;
-	vmx->cap[vcpuid].proc_ctls = procbased_ctls;
-	vmx->cap[vcpuid].proc_ctls2 = procbased_ctls2;
-	vmx->state[vcpuid].nextrip = ~(uint64_t) 0;
-
-	/*
-	 * Set up the CR0/4 shadows, and init the read shadow
-	 * to the power-on register value from the Intel Sys Arch.
-	 *  CR0 - 0x60000010
-	 *  CR4 - 0
-	 */
-	error = vmx_setup_cr0_shadow(vcpuid, 0x60000010);
-	if (error != 0)
-		xhyve_abort("vmx_setup_cr0_shadow %d\n", error);
-
-	error = vmx_setup_cr4_shadow(vcpuid, 0);
-
-	if (error != 0)
-		xhyve_abort("vmx_setup_cr4_shadow %d\n", error);
 
 	return (0);
 }
@@ -782,133 +709,51 @@ vmx_vcpu_init(void *arg, int vcpuid) {
 static int
 vmx_handle_cpuid(struct vm *vm, int vcpuid)
 {
-#ifndef __aarch64__
-	uint32_t eax, ebx, ecx, edx;
-	int error;
+    uint64_t midr, mpidr, revidr;
+    int error = 0;
 
-	eax = (uint32_t) reg_read(vcpuid, HV_X86_RAX);
-	ebx = (uint32_t) reg_read(vcpuid, HV_X86_RBX);
-	ecx = (uint32_t) reg_read(vcpuid, HV_X86_RCX);
-	edx = (uint32_t) reg_read(vcpuid, HV_X86_RDX);
+    // Read ARM system registers for CPU identification
+    midr = reg_read(vcpuid, (hv_reg_t)HV_SYS_REG_MIDR_EL1);    // Read MIDR_EL1 for CPU features
+    mpidr = reg_read(vcpuid, (hv_reg_t)HV_SYS_REG_MPIDR_EL1);  // Read MPIDR_EL1 for multiprocessor info
+    revidr = reg_read(vcpuid, (hv_reg_t)HV_SYS_REG_MIDR_EL1); // Read REVIDR_EL1 for revision info
 
-	error = x86_emulate_cpuid(vm, vcpuid, &eax, &ebx, &ecx, &edx);
+    // Emulate CPUID equivalent behavior if needed
+    error = arm_emulate_cpuid(vm, vcpuid, &midr, &mpidr, &revidr);
+    if (error != 0) {
+        return error;
+    }
 
-	reg_write(vcpuid, HV_X86_RAX, eax);
-	reg_write(vcpuid, HV_X86_RBX, ebx);
-	reg_write(vcpuid, HV_X86_RCX, ecx);
-	reg_write(vcpuid, HV_X86_RDX, edx);
+    // Write back the results to registers if needed
+    reg_write(vcpuid, (hv_reg_t)HV_SYS_REG_MIDR_EL1, midr);
+    reg_write(vcpuid, (hv_reg_t)HV_SYS_REG_MPIDR_EL1, mpidr);
+    reg_write(vcpuid, (hv_reg_t)HV_SYS_REG_MIDR_EL1, revidr);
 
-	return (error);
-#else
-	return 0;
-#endif
+    return 0;  // Successful CPUID handling
 }
 
 static __inline void
 vmx_run_trace(struct vmx *vmx, int vcpu)
 {
-#ifdef XHYVE_CONFIG_TRACE
-	VCPU_CTR1(vmx->vm, vcpu, "Resume execution at %#llx", vmcs_guest_rip(vcpu));
-#else
 	(void) vmx;
 	(void) vcpu;
-#endif
 }
 
 static __inline void
 vmx_exit_trace(struct vmx *vmx, int vcpu, uint64_t rip, uint32_t exit_reason,
 	       int handled)
 {
-#ifdef XHYVE_CONFIG_TRACE
-	VCPU_CTR3(vmx->vm, vcpu, "%s %s vmexit at 0x%0llx",
-		 handled ? "handled" : "unhandled",
-		 exit_reason_to_str((int) exit_reason), rip);
-#else
 	(void) vmx;
 	(void) vcpu;
 	(void) rip;
 	(void) exit_reason;
 	(void) handled;
-#endif
-}
-
-/*
- * We depend on 'procbased_ctls' to have the Interrupt Window Exiting bit set.
- */
-CTASSERT((PROCBASED_CTLS_ONE_SETTING & PROCBASED_INT_WINDOW_EXITING) != 0);
-
-static void __inline
-vmx_set_int_window_exiting(struct vmx *vmx, int vcpu)
-{
-	if ((vmx->cap[vcpu].proc_ctls & PROCBASED_INT_WINDOW_EXITING) == 0) {
-		vmx->cap[vcpu].proc_ctls |= PROCBASED_INT_WINDOW_EXITING;
-		vmcs_write(vcpu, VMCS_PRI_PROC_BASED_CTLS, vmx->cap[vcpu].proc_ctls);
-		VCPU_CTR0(vmx->vm, vcpu, "Enabling interrupt window exiting");
-	}
-}
-
-static void __inline
-vmx_clear_int_window_exiting(struct vmx *vmx, int vcpu)
-{
-	KASSERT((vmx->cap[vcpu].proc_ctls & PROCBASED_INT_WINDOW_EXITING) != 0,
-	    ("intr_window_exiting not set: %#x", vmx->cap[vcpu].proc_ctls));
-	vmx->cap[vcpu].proc_ctls &= ~PROCBASED_INT_WINDOW_EXITING;
-	vmcs_write(vcpu, VMCS_PRI_PROC_BASED_CTLS, vmx->cap[vcpu].proc_ctls);
-	VCPU_CTR0(vmx->vm, vcpu, "Disabling interrupt window exiting");
-}
-
-static void __inline
-vmx_set_nmi_window_exiting(struct vmx *vmx, int vcpu)
-{
-
-	if ((vmx->cap[vcpu].proc_ctls & PROCBASED_NMI_WINDOW_EXITING) == 0) {
-		vmx->cap[vcpu].proc_ctls |= PROCBASED_NMI_WINDOW_EXITING;
-		vmcs_write(vcpu, VMCS_PRI_PROC_BASED_CTLS, vmx->cap[vcpu].proc_ctls);
-		VCPU_CTR0(vmx->vm, vcpu, "Enabling NMI window exiting");
-	}
-}
-
-static void __inline
-vmx_clear_nmi_window_exiting(struct vmx *vmx, int vcpu)
-{
-
-	KASSERT((vmx->cap[vcpu].proc_ctls & PROCBASED_NMI_WINDOW_EXITING) != 0,
-	    ("nmi_window_exiting not set %#x", vmx->cap[vcpu].proc_ctls));
-	vmx->cap[vcpu].proc_ctls &= ~PROCBASED_NMI_WINDOW_EXITING;
-	vmcs_write(vcpu, VMCS_PRI_PROC_BASED_CTLS, vmx->cap[vcpu].proc_ctls);
-	VCPU_CTR0(vmx->vm, vcpu, "Disabling NMI window exiting");
-}
-
-static void
-vmx_inject_nmi(struct vmx *vmx, int vcpu)
-{
-	uint32_t gi, info;
-
-	gi = (uint32_t) vmcs_read(vcpu, VMCS_GUEST_INTERRUPTIBILITY);
-	KASSERT((gi & NMI_BLOCKING) == 0, ("vmx_inject_nmi: invalid guest "
-	    "interruptibility-state %#x", gi));
-
-	info = (uint32_t) vmcs_read(vcpu, VMCS_ENTRY_INTR_INFO);
-	KASSERT((info & VMCS_INTR_VALID) == 0, ("vmx_inject_nmi: invalid "
-	    "VM-entry interruption information %#x", info));
-
-	/*
-	 * Inject the virtual NMI. The vector must be the NMI IDT entry
-	 * or the VMCS entry check will fail.
-	 */
-	info = IDT_NMI | VMCS_INTR_T_NMI | VMCS_INTR_VALID;
-	vmcs_write(vcpu, VMCS_ENTRY_INTR_INFO, info);
-
-	VCPU_CTR0(vmx->vm, vcpu, "Injecting vNMI");
-
-	/* Clear the request */
-	vm_nmi_clear(vmx->vm, vcpu);
 }
 
 static void
 vmx_inject_interrupts(struct vmx *vmx, int vcpu, struct vlapic *vlapic,
     uint64_t guestrip)
 {
+#if 0
 	int vector, need_nmi_exiting, extint_pending;
 	uint64_t rflags, entryinfo;
 	uint32_t gi, info;
@@ -1087,8 +932,11 @@ cantinject:
 	 * the interrupt as soon as blocking condition goes away.
 	 */
 	vmx_set_int_window_exiting(vmx, vcpu);
+#endif
+	return;
 }
 
+#if 0
 /*
  * If the Virtual NMIs execution control is '1' then the logical processor
  * tracks virtual-NMI blocking in the Guest Interruptibility-state field of
@@ -1422,10 +1270,12 @@ vmx_cpl(int vcpu)
 	ssar = (uint32_t) vmcs_read(vcpu, VMCS_GUEST_SS_ACCESS_RIGHTS);
 	return ((ssar >> 5) & 0x3);
 }
+#endif
 
 static enum vm_cpu_mode
 vmx_cpu_mode(int vcpu)
 {
+#if 0
 	uint32_t csar;
 
 	if (vmcs_read(vcpu, VMCS_GUEST_IA32_EFER) & EFER_LMA) {
@@ -1439,12 +1289,14 @@ vmx_cpu_mode(int vcpu)
 	} else {
 		return (CPU_MODE_REAL);
 	}
+#endif
+	return 0;
 }
 
 static enum vm_paging_mode
 vmx_paging_mode(int vcpu)
 {
-
+#if 0
 	if (!(vmcs_read(vcpu, VMCS_GUEST_CR0) & CR0_PG))
 		return (PAGING_MODE_FLAT);
 	if (!(vmcs_read(vcpu, VMCS_GUEST_CR4) & CR4_PAE))
@@ -1453,6 +1305,8 @@ vmx_paging_mode(int vcpu)
 		return (PAGING_MODE_64);
 	else
 		return (PAGING_MODE_PAE);
+#endif
+	return 0;
 }
 
 static uint64_t
@@ -1501,6 +1355,7 @@ inout_str_addrsize(uint32_t inst_info)
 	}
 }
 
+#if 0
 static void
 inout_str_seginfo(struct vmx *vmx, int vcpuid, uint32_t inst_info, int in,
     struct vm_inout_str *vis)
@@ -1557,6 +1412,9 @@ vmexit_inst_emul(struct vm_exit *vmexit, uint64_t gpa, uint64_t gla, int vcpu)
 	}
 	vie_init(&vmexit->u.inst_emul.vie, NULL, 0);
 }
+
+/* This just has to be wrong.... */
+#define EPT_VIOLATION_DATA_WRITE 1
 
 static int
 ept_fault_type(uint64_t ept_qual)
@@ -1847,6 +1705,7 @@ emulate_rdmsr(struct vmx *vmx, int vcpuid, u_int num, bool *retu)
 
 	return (error);
 }
+
 
 static int
 vmx_exit_process(struct vmx *vmx, int vcpu, struct vm_exit *vmexit)
@@ -2345,6 +2204,7 @@ vmx_run(void *arg, int vcpu, register_t rip, void *rendezvous_cookie,
 
 	return (0);
 }
+#endif
 
 static void
 vmx_vm_cleanup(void *arg)
@@ -2367,7 +2227,7 @@ vmx_vcpu_cleanup(void *arg, int vcpuid) {
 	if (arg || vcpuid) xhyve_abort("vmx_vcpu_cleanup\n");
 }
 
-
+#if 0
 static int
 vmx_get_intr_shadow(int vcpu, uint64_t *retval)
 {
@@ -2425,7 +2285,7 @@ vmx_shadow_reg(enum vm_reg_name reg)
 
 	return (shreg);
 }
-
+#endif
 /*
 Comparable Registers to x86
 x86 RAX, RBX, RCX, RDX: Equivalent to x0, x1, x2, x3 in AArch64.
@@ -2452,43 +2312,46 @@ static const hv_x86_reg_t hvregs[] = {
 };
 */
 
-/* Don't use this */
 #if 0
-static const aarch64_reg_t aarch64regs[] = {
-    AARCH64_X0,
-    AARCH64_X1,
-    AARCH64_X2,
-    AARCH64_X3,
-    AARCH64_X4,
-    AARCH64_X5,
-    AARCH64_X6,
-    AARCH64_X7,
-    AARCH64_X8,
-    AARCH64_X9,
-    AARCH64_X10,
-    AARCH64_X11,
-    AARCH64_X12,
-    AARCH64_X13,
-    AARCH64_X14,
-    AARCH64_X15,
-    AARCH64_X16,
-    AARCH64_X17,
-    AARCH64_X18,
-    AARCH64_X19,
-    AARCH64_X20,
-    AARCH64_X21,
-    AARCH64_X22,
-    AARCH64_X23,
-    AARCH64_X24,
-    AARCH64_X25,
-    AARCH64_X26,
-    AARCH64_X27,
-    AARCH64_X28,
-    AARCH64_X29, // Frame Pointer (FP)
-    AARCH64_X30, // Link Register (LR)
-    AARCH64_SP   // Stack Pointer (SP)
+/* Don't use this */
+static const aarch64_reg_t hvregs[] = {
+   HV_REG_X0,
+    HV_REG_X1,
+    HV_REG_X2,
+    HV_REG_X3,
+    HV_REG_X4,
+    HV_REG_X5,
+    HV_REG_X6,
+    HV_REG_X7,
+    HV_REG_X8,
+    HV_REG_X9,
+    HV_REG_X10,
+    HV_REG_X11,
+    HV_REG_X12,
+    HV_REG_X13,
+    HV_REG_X14,
+    HV_REG_X15,
+    HV_REG_X16,
+    HV_REG_X17,
+    HV_REG_X18,
+    HV_REG_X19,
+    HV_REG_X20,
+    HV_REG_X21,
+    HV_REG_X22,
+    HV_REG_X23,
+    HV_REG_X24,
+    HV_REG_X25,
+    HV_REG_X26,
+    HV_REG_X27,
+    HV_REG_X28,
+    HV_REG_FP,  // Frame Pointer (x29)
+    HV_REG_LR,  // Link Register (x30)
+    HV_REG_SP,  // Stack Pointer
+    HV_REG_PC,  // Program Counter
+
+    // System Registers
+    HV_REG_CPSR,  // Current Program Status Register
 };
-#endif
 
 typedef enum {
     // General-Purpose Registers (GPRs)
@@ -2529,78 +2392,40 @@ typedef enum {
     // System Registers
     HV_REG_CPSR,  // Current Program Status Register
 } hv_reg_t;
-
+#endif
 
 static int
 vmx_getreg(UNUSED void *arg, int vcpu, enum vm_reg_name reg, uint64_t *retval)
 {
+#if 0
 	hv_reg_t hvreg;
 
-	if (reg == VM_REG_GUEST_INTR_SHADOW)
-		return (vmx_get_intr_shadow(vcpu, retval));
-
-	hvreg = hvregs[reg];
-	if (hvreg != HV_X86_REGISTERS_MAX) {
-		*retval = reg_read(vcpu, hvreg);
-		return (0);
-	}
+	hvreg = hvreg[reg];
+	*retval = reg_read(vcpu, hvreg);
 
 	return (vmcs_getreg(vcpu, (int) reg, retval));
+#endif
+	return 0;
 }
 
 static int
 vmx_setreg(void *arg, int vcpu, enum vm_reg_name reg, uint64_t val)
 {
+#if 0
 	int error, shadow;
 	uint64_t ctls;
 	hv_reg_t hvreg;
 	struct vmx *vmx = arg;
 
-	if (reg == VM_REG_GUEST_INTR_SHADOW)
-		return (vmx_modify_intr_shadow(vmx, vcpu, val));
-
-	hvreg = hvregs[reg];
-	if (hvreg != HV_X86_REGISTERS_MAX) {
-		reg_write(vcpu, hvreg, val);
-		return (0);
-	}
+	hvreg = hvreg[reg];
+	
+	reg_write(vcpu, hvreg, val);
 
 	error = vmcs_setreg(vcpu, (int) reg, val);
 
-	if (error == 0) {
-		/*
-		 * If the "load EFER" VM-entry control is 1 then the
-		 * value of EFER.LMA must be identical to "IA-32e mode guest"
-		 * bit in the VM-entry control.
-		 */
-		if ((entry_ctls & VM_ENTRY_LOAD_EFER) != 0 &&
-		    (reg == VM_REG_GUEST_EFER)) {
-			vmcs_getreg(vcpu, VMCS_IDENT(VMCS_ENTRY_CTLS), &ctls);
-			if (val & EFER_LMA)
-				ctls |= VM_ENTRY_GUEST_LMA;
-			else
-				ctls &= ~VM_ENTRY_GUEST_LMA;
-			vmcs_setreg(vcpu, VMCS_IDENT(VMCS_ENTRY_CTLS), ctls);
-		}
-
-		shadow = vmx_shadow_reg(reg);
-		if (shadow > 0) {
-			/*
-			 * Store the unmodified value in the shadow
-			 */
-			error = vmcs_setreg(vcpu, VMCS_IDENT(shadow), val);
-		}
-
-		if (reg == VM_REG_GUEST_CR3) {
-			/*
-			 * Invalidate the guest vcpu's TLB mappings to emulate
-			 * the behavior of updating %cr3.
-			 */
-			hv_vcpu_invalidate_tlb((hv_vcpuid_t) vcpu);
-		}
-	}
-
-	return (error);
+      	return (error);
+#endif
+	return 0;
 }
 
 static int
@@ -2615,6 +2440,7 @@ vmx_setdesc(UNUSED void *arg, int vcpu, enum vm_reg_name reg, struct seg_desc *d
 	return (vmcs_setdesc(vcpu, (int) reg, desc));
 }
 
+#if 0
 static int
 vmx_getcap(void *arg, int vcpu, enum vm_cap_type type, int *retval)
 {
@@ -2652,6 +2478,7 @@ vmx_getcap(void *arg, int vcpu, enum vm_cap_type type, int *retval)
 static int
 vmx_setcap(void *arg, int vcpu, enum vm_cap_type type, int val)
 {
+#if 0
 	struct vmx *vmx = arg;
 	uint32_t baseval;
 	uint32_t *pptr;
@@ -2721,10 +2548,10 @@ vmx_setcap(void *arg, int vcpu, enum vm_cap_type type, int val)
 		}
 
 	}
-
-	return (retval);
+#endif
+	return 0;
 }
-
+#endif
 struct vlapic_vtx {
 	struct vlapic vlapic;
 	struct pir_desc *pir_desc;
@@ -2772,6 +2599,14 @@ struct vlapic_vtx {
 // 	return (notify);
 // }
 
+static int
+vmx_run(void *arg, int vcpu, register_t rip, void *rendezvous_cookie,
+        void *suspend_cookie)
+{
+return 0;
+}
+
+#if 0
 static struct vlapic *
 vmx_vlapic_init(void *arg, int vcpuid)
 {
@@ -2795,6 +2630,7 @@ vmx_vlapic_init(void *arg, int vcpuid)
 
 	return (vlapic);
 }
+#endif
 
 static void
 vmx_vlapic_cleanup(UNUSED void *arg, struct vlapic *vlapic)
@@ -2821,13 +2657,13 @@ struct vmm_ops vmm_ops_aarch64 = {
 	vmx_run,
 	vmx_vm_cleanup,
 	vmx_vcpu_cleanup,
-	vmx_getreg,
-	vmx_setreg,
+	//vmx_getreg,
+	//vmx_setreg,
 	vmx_getdesc,
 	vmx_setdesc,
-	vmx_getcap,
-	vmx_setcap,
-	vmx_vlapic_init,
+	//vmx_getcap,
+	//vmx_setcap,
+	//vmx_vlapic_init,
 	vmx_vlapic_cleanup,
 	vmx_vcpu_interrupt
 };

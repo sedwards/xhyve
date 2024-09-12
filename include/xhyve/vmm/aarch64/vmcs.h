@@ -43,6 +43,7 @@ int	vmcs_setdesc(int vcpuid, int ident, struct seg_desc *desc);
 static __inline uint64_t
 vmcs_read(int vcpuid, uint32_t encoding)
 {
+#if 0
     hv_vcpu_t vcpu = (hv_vcpu_t)vcpuid; // Ensure vcpuid is correctly cast
     uint64_t val;
     hv_register_t reg = (hv_register_t)encoding; // Assuming encoding maps directly to register type
@@ -54,12 +55,15 @@ vmcs_read(int vcpuid, uint32_t encoding)
         return 0; // or an appropriate error value
     }
 
-    return val;
+    return val
+#endif
+    return 0;
 }
 
 static __inline void
 vmcs_write(int vcpuid, uint32_t encoding, uint64_t val)
 {
+#if 0
     hv_vcpu_t vcpu = (hv_vcpu_t)vcpuid; // Ensure vcpuid is correctly cast
     hv_register_t reg = (hv_register_t)encoding; // Assuming encoding maps directly to register type
 
@@ -74,6 +78,7 @@ vmcs_write(int vcpuid, uint32_t encoding, uint64_t val)
     if (result != HV_SUCCESS) {
         // Handle the error, e.g., print a message
     }
+#endif
 }
 
 #define	vmexit_instruction_length(vcpuid) \
