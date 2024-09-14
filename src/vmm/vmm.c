@@ -193,6 +193,7 @@ vcpu_cleanup(struct vm *vm, int i, bool destroy)
 static void
 vcpu_init(struct vm *vm, int vcpu_id, bool create)
 {
+	printf("vcpu_init\n");
 	struct vcpu *vcpu;
 
 	KASSERT(vcpu_id >= 0 && vcpu_id < VM_MAXCPU,
@@ -266,9 +267,11 @@ vmm_init(void)
 	error = vmm_mem_init();
 	if (error)
 		return (error);
-	
+
+        printf("Attempting operations\n");	
 	ops = &vmm_ops_aarch64;
 
+        printf("Attempting VM_INIT");
 	error = VMM_INIT();
 
 	if (error == 0)
@@ -353,6 +356,7 @@ vm_create(struct vm **retvm)
 static void
 vm_free_mem_seg(struct mem_seg *seg)
 {
+	printf("vm_free_mem_seg\n");
 	if (seg->object != NULL) {
 		vmm_mem_free(seg->gpa, seg->len, seg->object);
 	}
@@ -464,6 +468,7 @@ vm_malloc(struct vm *vm, uint64_t gpa, size_t len, uint64_t prot)
 		g += XHYVE_PAGE_SIZE;
 	}
 
+	printf("vm_malloc - If we got here, I assume vm_malloc has mostly alloc'ed the needful\n");
 	/*
 	 * If there are some allocated and some available pages in the address
 	 * range then it is an error.
@@ -491,19 +496,23 @@ vm_malloc(struct vm *vm, uint64_t gpa, size_t len, uint64_t prot)
 	seg->object = object;
 
 	vm->num_mem_segs++;
+	printf("vm_malloc - end\n");
 
 	return (0);
 }
 
 void *
 vm_gpa2hva(struct vm *vm, uint64_t gpa, uint64_t len) {
+	printf("vm_gpa2hva - called");
 	void *base;
 	uint64_t offset;
 
 	if (vm_get_memobj(vm, gpa, len, &offset, &base)) {
+		printf("vm_gpa2hva - called vm_get_memobj returned NULL");
 		return NULL;
 	}
 
+ 	printf("vm_gpa2hva - returns (void *) (((uintptr_t) base) + offset");
 	return (void *) (((uintptr_t) base) + offset);
 }
 
@@ -527,12 +536,14 @@ int
 vm_get_memobj(struct vm *vm, uint64_t gpa, size_t len,
 	      uint64_t *offset, void **object)
 {
+	printf("vm_get_memobj\n");
 	int i;
 	size_t seg_len;
 	uint64_t seg_gpa;
 	void *seg_obj;
 
 	for (i = 0; i < vm->num_mem_segs; i++) {
+                printf("vm_get_memobj - Calcuating guest memory segments \n");
 		if ((seg_obj = vm->mem_segs[i].object) == NULL)
 			continue;
 
@@ -542,10 +553,12 @@ vm_get_memobj(struct vm *vm, uint64_t gpa, size_t len,
 		if ((gpa >= seg_gpa) && ((gpa + len) <= (seg_gpa + seg_len))) {
 			*offset = gpa - seg_gpa;
 			*object = seg_obj;
+                        printf("vm_get_memobj - returned 0\n");
 			return (0);
 		}
 	}
-
+	
+	printf("vm_get_memobj - returns EINVAL\n");
 	return (EINVAL);
 }
 
