@@ -27,6 +27,7 @@
  * $FreeBSD$
  */
 
+#ifndef __aarch64__
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -86,10 +87,12 @@ emulate_rdmsr(UNUSED int vcpu, uint32_t num, uint64_t *val)
 int
 init_msr(void)
 {
+	printf("int init_msr - nothing is here\n");
+#if 0
 	u_int regs[4];
 	u_int cpu_vendor[4];
 
-	//do_cpuid(0, regs);
+	do_cpuid(0, regs);
 	cpu_vendor[0] = regs[1];
 	cpu_vendor[1] = regs[3];
 	cpu_vendor[2] = regs[2];
@@ -101,4 +104,7 @@ init_msr(void)
 		fprintf(stderr, "Unknown cpu vendor \"%s\"\n", ((char *) cpu_vendor));
 		return (-1);
 	}
+#endif
+	return 0;
 }
+#endif /* __aarch64__ */

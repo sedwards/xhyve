@@ -267,7 +267,7 @@ vmm_init(void)
 	if (error)
 		return (error);
 	
-	//ops = &vmm_ops_intel;
+	ops = &vmm_ops_aarch64;
 
 	error = VMM_INIT();
 

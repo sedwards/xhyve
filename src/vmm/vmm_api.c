@@ -131,6 +131,7 @@ xh_vcpu_destroy(int vcpu)
 int
 xh_vm_get_memory_seg(uint64_t gpa, size_t *ret_len)
 {
+	printf("xh_vm_get_memory_segment\n");
 	int error;
 
 	struct vm_memory_segment seg;
@@ -147,6 +148,7 @@ xh_vm_get_memory_seg(uint64_t gpa, size_t *ret_len)
 static int
 setup_memory_segment(uint64_t gpa, size_t len, uint64_t prot, void **addr)
 {
+	printf("setup_memory_segment\n");
 	void *object;
 	uint64_t offset;
 	int error;
@@ -166,6 +168,7 @@ setup_memory_segment(uint64_t gpa, size_t len, uint64_t prot, void **addr)
 int
 xh_vm_setup_memory(size_t len, enum vm_mmap_style vms)
 {
+	printf("xh_vm_setup_memory_segment\n");
 	void **addr;
 	int error;
     const uint64_t protFlags = XHYVE_PROT_READ | XHYVE_PROT_WRITE | XHYVE_PROT_EXECUTE;
@@ -203,6 +206,7 @@ xh_vm_setup_memory(size_t len, enum vm_mmap_style vms)
 int
 xh_setup_bootrom_memory(size_t len, void **addr)
 {
+        printf("xh_vm_setup_bootrom_memory\n");
     int error;
 
     assert(len % XHYVE_PAGE_SIZE == 0);
@@ -217,6 +221,7 @@ xh_setup_bootrom_memory(size_t len, void **addr)
 int
 xh_setup_video_memory(uint64_t gpa, size_t len, void **addr)
 {
+    printf("xh_vm_setup_video_memory\n");
     int error;
 
     assert(len % XHYVE_PAGE_SIZE == 0);

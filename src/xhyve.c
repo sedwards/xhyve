@@ -70,6 +70,27 @@
 #include <xhyve/firmware/kexec.h>
 #include <xhyve/firmware/fbsd.h>
 
+
+/* Notes for porting to ARM64 architectures
+
+MSRs are SRs on Arm64
+
+Key Types of ARM System Registers:
+Configuration Registers: Control system settings such as processor modes, cache settings, and memory management (e.g., SCTLR_EL1, which controls the system's behavior in EL1 mode).
+
+Performance Monitoring Registers: These are used to track performance-related metrics, similar to performance counters on Intel chips (e.g., PMCCNTR_EL0 for counting CPU cycles).
+
+Exception Level Registers (EL): ARM defines several exception levels (EL0–EL3), with system registers available for each level to manage system behavior. For example, SPSR_EL1 holds the saved program status register for exception level 1.
+
+Identification Registers: Similar to Intel's CPUID MSRs, ARM has identification registers like MIDR_EL1, which contains the CPU identification information such as model and revision.
+
+Debugging and Tracing Registers: These provide facilities for hardware-based debugging and tracing (e.g., DBGBVR_EL1 and DBGBCR_EL1 for setting breakpoints).
+
+Like Intel’s MSRs, these system registers are accessible only to privileged software, ensuring that normal user-space applications cannot directly manipulate critical CPU settings. However, they are essential for controlling the architecture’s advanced features in hypervisor or kernel-level software.
+
+*/
+
+
 #define GUEST_NIO_PORT 0x488 /* guest upcalls via i/o port */
 
 #define MB (1024UL * 1024)
@@ -547,8 +568,8 @@ static vmexit_handler_t handler[VM_EXITCODE_MAX] = {
 	[VM_EXITCODE_INOUT_STR] = vmexit_inout,
 	[VM_EXITCODE_VMX] = vmexit_vmx,
 	[VM_EXITCODE_BOGUS] = vmexit_bogus,
-	[VM_EXITCODE_RDMSR] = vmexit_rdmsr,
-	[VM_EXITCODE_WRMSR] = vmexit_wrmsr,
+	//[VM_EXITCODE_RDMSR] = vmexit_rdmsr,
+	//[VM_EXITCODE_WRMSR] = vmexit_wrmsr,
 	[VM_EXITCODE_MTRAP] = vmexit_mtrap,
 	[VM_EXITCODE_INST_EMUL] = vmexit_inst_emul,
 	[VM_EXITCODE_SPINUP_AP] = vmexit_spinup_ap,
@@ -793,7 +814,7 @@ remove_pidfile()
 
 	error = unlink(pidfile);
 	if (error < 0)
-		fprintf(stderr, "Failed to remove pidfile\n");
+		sprintf(stderr, "Failed to remove pidfile\n");
 }
 
 static int
@@ -966,13 +987,13 @@ main(int argc, char *argv[])
 		fprintf(stderr, "Unable to setup memory (%d)\n", error);
 		exit(1);
 	}
-
+#if 0
 	error = init_msr();
 	if (error) {
 		fprintf(stderr, "init_msr error %d\n", error);
 		exit(1);
 	}
-
+#endif
 	error = setup_pidfile();
 	if (error) {
 		fprintf(stderr, "pidfile error %d\n", error);

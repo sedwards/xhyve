@@ -2031,6 +2031,7 @@ vmx_exit_process(struct vmx *vmx, int vcpu, struct vm_exit *vmexit)
 		 */
 		gpa = vmcs_gpa(vcpu);
 		HYPERKIT_VMX_EPT_FAULT(vcpu, gpa, qual);
+#if 0
 		if (vm_mem_allocated(vmx->vm, gpa) ||
 		    bootrom_contains_gpa(gpa) ||
 		    apic_access_fault(vmx, vcpu, gpa)) {
@@ -2043,6 +2044,7 @@ vmx_exit_process(struct vmx *vmx, int vcpu, struct vm_exit *vmexit)
 			vmexit_inst_emul(vmexit, gpa, vmcs_gla(vcpu), vcpu);
 			vmm_stat_incr(vmx->vm, vcpu, VMEXIT_INST_EMUL, 1);
 		}
+#endif
 		/*
 		 * If Virtual NMIs control is 1 and the VM-exit is due to an
 		 * EPT fault during the execution of IRET then we must restore
@@ -2428,11 +2430,11 @@ vmx_setreg(void *arg, int vcpu, enum vm_reg_name reg, uint64_t val)
 	return 0;
 }
 
-static int
-vmx_getdesc(UNUSED void *arg, int vcpu, enum vm_reg_name reg, struct seg_desc *desc)
-{
-	return (vmcs_getdesc(vcpu, (int) reg, desc));
-}
+//static int
+//vmx_getdesc(UNUSED void *arg, int vcpu, enum vm_reg_name reg, struct seg_desc *desc)
+//{
+//	return (vmcs_getdesc(vcpu, (int) reg, desc));
+//}
 
 static int
 vmx_setdesc(UNUSED void *arg, int vcpu, enum vm_reg_name reg, struct seg_desc *desc)
@@ -2659,12 +2661,12 @@ struct vmm_ops vmm_ops_aarch64 = {
 	vmx_vcpu_cleanup,
 	//vmx_getreg,
 	//vmx_setreg,
-	vmx_getdesc,
-	vmx_setdesc,
+	//vmx_getdesc,
+	//vmx_setdesc,
 	//vmx_getcap,
 	//vmx_setcap,
 	//vmx_vlapic_init,
-	vmx_vlapic_cleanup,
-	vmx_vcpu_interrupt
+	//vmx_vlapic_cleanup,
+	//vmx_vcpu_interrupt
 };
 

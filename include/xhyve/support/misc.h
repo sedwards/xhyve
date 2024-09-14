@@ -65,6 +65,39 @@ static inline void do_cpuid(unsigned ax, unsigned *p) {
 }
 #endif
 
+#if 0
+/* aarch64 */
+#include <Hypervisor/hv.h>
+#include <Hypervisor/hv_vmx.h>
+#include <Hypervisor/hv_vcpu.h>
+#include <Hypervisor/hv_base.h>
+#include <Hypervisor/hv_vm_types.h>
+
+static inline void cpuid_count_arm(struct vm *vm, int vcpuid, uint64_t *p) {
+    uint64_t midr, mpidr, revidr;
+
+    // Read ARM system registers for CPU identification
+    midr = reg_read(vcpuid, (hv_reg_t)HV_SYS_REG_MIDR_EL1);    // MIDR_EL1 for CPU features
+    mpidr = reg_read(vcpuid, (hv_reg_t)HV_SYS_REG_MPIDR_EL1);  // MPIDR_EL1 for multiprocessor info
+    //revidr = reg_read(vcpuid, (hv_reg_t)HV_SYS_REG_REVIDR_EL1); // REVIDR_EL1 for revision info
+
+    // Store results in the output array
+    p[0] = midr;    // Equivalent to AX in Intel
+    p[1] = mpidr;   // Equivalent to BX in Intel
+    //p[2] = revidr;  // Equivalent to CX in Intel
+    p[2] = 0;  // No equivalent to CX in Intel, set to 0
+    p[3] = 0;       // No equivalent for DX in this case, set to 0
+}
+
+static inline void do_cpuid_arm(struct vm *vm, int vcpuid, uint64_t *result) {
+    vmx_handle_cpuid(vm, vcpuid);  // Call the ARM CPUID handler
+    // Optionally, fill in the result array with MIDR, MPIDR, REVIDR values
+    result[0] = reg_read(vcpuid, (hv_reg_t)HV_SYS_REG_MIDR_EL1);
+    result[1] = reg_read(vcpuid, (hv_reg_t)HV_SYS_REG_MPIDR_EL1);
+    //result[2] = reg_read(vcpuid, (hv_reg_t)HV_SYS_REG_REVIDR_EL1);
+}
+#endif
+
 /*
  * read_uint16_unaligned, write_uint16_unaligned,
  * read_uint32_unaligned, write_uint32_unaligned
