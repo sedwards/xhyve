@@ -222,7 +222,7 @@ vcpu_init(struct vm *vm, int vcpu_id, bool create)
 }
 
 int vcpu_create(struct vm *vm, int vcpu) {
-	printf("vcpu_create");
+	printf("vcpu_create\n");
 	if (vcpu < 0 || vcpu >= VM_MAXCPU)
 		xhyve_abort("vcpu_create: invalid cpuid %d\n", vcpu);
 

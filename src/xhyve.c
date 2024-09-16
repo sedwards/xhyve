@@ -273,6 +273,7 @@ vcpu_thread(void *param)
 	error = xh_vcpu_create(vcpu);
 	assert(error == 0);
 
+        printf("We seem to have successfully created a vcp\n");
 	vcpu_set_capabilities(vcpu);
 
 	error = xh_vcpu_reset(vcpu);
@@ -580,7 +581,9 @@ static vmexit_handler_t handler[VM_EXITCODE_MAX] = {
 void
 vcpu_set_capabilities(int cpu)
 {
-printf("vcpu_set_capabilities\n");
+printf("FIXME - vcpu_set_capabilities\n");
+// This has to be rewritten
+#if 0
 	int err, tmp;
 
 	if (fbsdrun_vmexit_on_hlt()) {
@@ -613,11 +616,12 @@ printf("vcpu_set_capabilities\n");
 		err = xh_vm_set_x2apic_state(cpu, X2APIC_ENABLED);
 	else
 		err = xh_vm_set_x2apic_state(cpu, X2APIC_DISABLED);
+#endif
 
-	if (err) {
-		fprintf(stderr, "Unable to set x2apic state (%d)\n", err);
-		exit(1);
-	}
+//	if (err) {
+		fprintf(stderr, "Unable to set x2apic state\n");
+//		exit(1);
+//	}
 }
 
 static void
