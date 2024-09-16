@@ -96,6 +96,7 @@ struct vm_guest_paging {
 	enum vm_paging_mode paging_mode;
 };
 
+//#ifdef __x86_64__
 enum vm_reg_name {
 	VM_REG_GUEST_RAX,
 	VM_REG_GUEST_RBX,
@@ -138,6 +139,53 @@ enum vm_reg_name {
 	VM_REG_GUEST_INTR_SHADOW,
 	VM_REG_LAST
 };
+//#endif
+
+/* AArch 
+enum vm_reg_name {
+    VM_REG_GUEST_X0,
+    VM_REG_GUEST_X1,
+    VM_REG_GUEST_X2,
+    VM_REG_GUEST_X3,
+    VM_REG_GUEST_X4,
+    VM_REG_GUEST_X5,
+    VM_REG_GUEST_X6,
+    VM_REG_GUEST_X7,
+    VM_REG_GUEST_X8,
+    VM_REG_GUEST_X9,
+    VM_REG_GUEST_X10,
+    VM_REG_GUEST_X11,
+    VM_REG_GUEST_X12,
+    VM_REG_GUEST_X13,
+    VM_REG_GUEST_X14,
+    VM_REG_GUEST_X15,
+    VM_REG_GUEST_X16,
+    VM_REG_GUEST_X17,
+    VM_REG_GUEST_X18,
+    VM_REG_GUEST_X19,
+    VM_REG_GUEST_X20,
+    VM_REG_GUEST_X21,
+    VM_REG_GUEST_X22,
+    VM_REG_GUEST_X23,
+    VM_REG_GUEST_X24,
+    VM_REG_GUEST_X25,
+    VM_REG_GUEST_X26,
+    VM_REG_GUEST_X27,
+    VM_REG_GUEST_X28,
+    VM_REG_GUEST_X29,  // Frame Pointer (FP)
+    VM_REG_GUEST_X30,  // Link Register (LR)
+    VM_REG_GUEST_SP,   // Stack Pointer (SP)
+    VM_REG_GUEST_PC,   // Program Counter (PC)
+    VM_REG_GUEST_PSTATE, // Processor State
+    VM_REG_GUEST_TPIDR_EL0, // Thread ID Register (EL0)
+    VM_REG_GUEST_TPIDR_EL1, // Thread ID Register (EL1)
+    VM_REG_GUEST_VBAR_EL1,  // Vector Base Address Register (EL1)
+    VM_REG_GUEST_CNTV_CTL_EL0,  // Timer Control
+    VM_REG_GUEST_CNTV_TVAL_EL0, // Timer Value
+    VM_REG_GUEST_CNTV_CVAL_EL0, // Timer Compare Value
+    VM_REG_LAST
+};
+*/
 
 enum vm_exitcode {
 	VM_EXITCODE_INOUT,

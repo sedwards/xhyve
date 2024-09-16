@@ -57,10 +57,12 @@ static struct {
 } inout_handlers[MAX_IOPORTS];
 #pragma clang diagnostic pop
 
+
 static int
 default_inout(UNUSED int vcpu, int in, UNUSED int port, int bytes,
 	uint32_t *eax, UNUSED void *arg)
 {
+	printf("inout - default \n");
 	if (in) {
 		switch (bytes) {
 		case 4:
@@ -75,12 +77,63 @@ default_inout(UNUSED int vcpu, int in, UNUSED int port, int bytes,
 		}
 	}
 	
+	printf("inout - default returned\n");
 	return (0);
 }
+
+
+#if 0
+#include <stdio.h>
+#include <stdint.h>
+
+#define UNUSED __attribute__((unused))
+
+// This is a placeholder memory-mapped I/O address
+#define MMIO_BASE_ADDR 0x10000000
+
+static int
+default_mmio(UNUSED int vcpu, int in, uintptr_t addr, int bytes,
+        uint32_t *eax, UNUSED void *arg)
+{
+        printf("MMIO - default\n");
+
+        if (in) {
+                // Simulate reading from memory-mapped I/O address
+                switch (bytes) {
+                case 4:
+                        *eax = *(volatile uint32_t *)(MMIO_BASE_ADDR + addr);
+                        break;
+                case 2:
+                        *eax = *(volatile uint16_t *)(MMIO_BASE_ADDR + addr);
+                        break;
+                case 1:
+                        *eax = *(volatile uint8_t *)(MMIO_BASE_ADDR + addr);
+                        break;
+                }
+        } else {
+                // Simulate writing to memory-mapped I/O address
+                switch (bytes) {
+                case 4:
+                        *(volatile uint32_t *)(MMIO_BASE_ADDR + addr) = *eax;
+                        break;
+                case 2:
+                        *(volatile uint16_t *)(MMIO_BASE_ADDR + addr) = (uint16_t)*eax;
+                        break;
+                case 1:
+                        *(volatile uint8_t *)(MMIO_BASE_ADDR + addr) = (uint8_t)*eax;
+                        break;
+                }
+        }
+
+        printf("MMIO - default returned\n");
+        return 0;
+}
+#endif
 
 static void 
 register_default_iohandler(int start, int size)
 {
+	printf("inout - register_default_iohandler \n");
 	struct inout_port iop;
 	
 	VERIFY_IOPORT(start, size);
@@ -99,6 +152,7 @@ static int
 update_register(int vcpuid, enum vm_reg_name reg,
 	uint64_t val, int size)
 {
+	printf("update_register\n");
 	int error;
 	uint64_t origval;
 
@@ -158,8 +212,6 @@ emulate_inout(int vcpu, struct vm_exit *vmexit, int strict)
 		if (!(flags & IOPORT_F_OUT))
 			return (-1);
 	}
-
-	retval = 0;
 	if (vmexit->u.inout.string) {
 		vis = &vmexit->u.inout_str;
 		rep = vis->inout.rep;
@@ -257,6 +309,7 @@ emulate_inout(int vcpu, struct vm_exit *vmexit, int strict)
 void
 init_inout(void)
 {
+	printf("init_inout\n");
 	struct inout_port **iopp, *iop;
 
 	/*
@@ -268,18 +321,28 @@ init_inout(void)
 	 * Overwrite with specified handlers
 	 */
 	SET_FOREACH(iopp, inout_port_set) {
+		printf("init_inout - SET_FOREACH(iopp, inout_port_set)\n");
 		iop = *iopp;
 		assert(iop->port < MAX_IOPORTS);
 		inout_handlers[iop->port].name = iop->name;
+		printf("init_inout - SET_FOREACH(iopp, inout_port_set) - inout_handlers[iop->port].name = iop->name; \n");
 		inout_handlers[iop->port].flags = iop->flags;
+		printf("init_inout - SET_FOREACH(iopp, inout_port_set) - inout_handlers[iop->port].name = iop->flags; \n");
+		inout_handlers[iop->port].flags = iop->flags;
+		printf("init_inout - SET_FOREACH(iopp, inout_port_set) - inout_handlers[iop->port].name = iop->flags; \n");
 		inout_handlers[iop->port].handler = iop->handler;
+		printf("init_inout - SET_FOREACH(iopp, inout_port_set) - inout_handlers[iop->port].name = iop->handler; \n");
 		inout_handlers[iop->port].arg = NULL;
+		printf("init_inout - SET_FOREACH(iopp, inout_port_set) - inout_handlers[iop->port].name = iop->arg; \n");
 	}
+
+	printf("init_inout\n");
 }
 
 int
 register_inout(struct inout_port *iop)
 {
+	printf("register_inoutt - enter\n");
 	int i;
 
 	VERIFY_IOPORT(iop->port, iop->size);
@@ -302,12 +365,14 @@ register_inout(struct inout_port *iop)
 		inout_handlers[i].arg = iop->arg;
 	}
 
+	printf("register_inoutt - exit\n");
 	return (0);
 }
 
 int
 unregister_inout(struct inout_port *iop)
 {
+	printf("unregister_inoutt - enter\n");
 
 	VERIFY_IOPORT(iop->port, iop->size);
 	assert(inout_handlers[iop->port].name == iop->name);

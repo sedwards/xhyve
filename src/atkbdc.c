@@ -506,6 +506,8 @@ atkbdc_event(struct atkbdc_softc *sc, int iskbd)
 void
 atkbdc_init()
 {
+	printf("atkbdc_init\n");
+
 	struct inout_port iop;
 	struct atkbdc_softc *sc;
 	int error;
@@ -542,7 +544,9 @@ atkbdc_init()
 	pci_irq_reserve(AUX_DEV_IRQ);
 	sc->aux.irq = AUX_DEV_IRQ;
 
+        printf("atkbdc_init - ps2kbd_init\n");
 	sc->ps2kbd_sc = ps2kbd_init(sc);
+        printf("atkbdc_init - ps2kmouse_init\n");
 	sc->ps2mouse_sc = ps2mouse_init(sc);
 }
 

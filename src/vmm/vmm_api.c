@@ -161,7 +161,10 @@ setup_memory_segment(uint64_t gpa, size_t len, uint64_t prot, void **addr)
 			*addr = (void *) (((uintptr_t) object) + offset);
 		}
 	}
+	printf("setup_memory_segment - entering vcpu_freeze_all\n");
 	vcpu_freeze_all(false);
+
+	printf("setup_memory_segment - Returns\n");
 	return (error);
 }
 
@@ -171,7 +174,7 @@ xh_vm_setup_memory(size_t len, enum vm_mmap_style vms)
 	printf("xh_vm_setup_memory_segment\n");
 	void **addr;
 	int error;
-    const uint64_t protFlags = XHYVE_PROT_READ | XHYVE_PROT_WRITE | XHYVE_PROT_EXECUTE;
+        const uint64_t protFlags = XHYVE_PROT_READ | XHYVE_PROT_WRITE | XHYVE_PROT_EXECUTE;
 
 	/* XXX VM_MMAP_SPARSE not implemented yet */
 	assert(vms == VM_MMAP_NONE || vms == VM_MMAP_ALL);
@@ -200,6 +203,7 @@ xh_vm_setup_memory(size_t len, enum vm_mmap_style vms)
 		}
 	}
 
+	printf("xh_vm_setup_memory - complete\n");
 	return (0);
 }
 
@@ -764,9 +768,11 @@ xh_vm_rtc_gettime(time_t *secs)
 	return (0);
 }
 
+//#ifdef __x86_64__
 int
 xh_vcpu_reset(int vcpu)
 {
+	printf("xh_vcpu_reset\n");
 	int error;
 
 #define SET_REG(r, v) (error = xh_vm_set_register(vcpu, (r), (v)))
@@ -809,6 +815,120 @@ xh_vcpu_reset(int vcpu)
 
 	return (0);
 }
+//#endif
+
+/*
+Changes:
+Program Counter (PC): On AArch64, PC is the equivalent of RIP on x86, so it is set to the reset vector (0x0).
+PSTATE and SPSR: Instead of RFLAGS, we set the PSTATE register, which controls the processor state. SPSR is the Saved Program Status Register.
+General-purpose registers: AArch64 uses registers X0 through X29, and LR (Link Register, X30), instead of RAX, RBX, etc.
+Stack Pointer: We set the stack pointer for exception level 1 (SP_EL1), which is the equivalent of RSP in x86.
+Control Registers: Instead of CR0, CR3, CR4, AArch64 has SCTLR_ELx, TTBRx_ELx, etc., which are not included here, but you would adjust those based on the exception level you are configuring.
+Since ARM doesn’t have the same descriptor tables (like GDT, IDT), those settings (SET_DESC) are removed. You would replace this with MMU configurations if needed.
+*/
+
+#if 0
+int
+xh_vcpu_reset(int vcpu)
+{
+    printf("xh_vcpu_reset\n");
+    int error;
+
+#define SET_REG(r, v) (error = xh_vm_set_register(vcpu, (r), (v)))
+
+    // Set program counter (PC) to the reset vector address for AArch64
+    if (SET_REG(VM_REG_GUEST_PC, 0x0) ||  // PC (program counter) set to reset vector
+        SET_REG(VM_REG_GUEST_PSTATE, 0x3C5) ||  // PSTATE set to reset state
+        SET_REG(VM_REG_GUEST_SP_EL1, 0) ||  // Stack pointer (SP_EL1) to 0
+        SET_REG(VM_REG_GUEST_X0, 0) ||     // General-purpose registers X0 to X29
+        SET_REG(VM_REG_GUEST_X1, 0) ||
+        SET_REG(VM_REG_GUEST_X2, 0) ||
+        SET_REG(VM_REG_GUEST_X3, 0) ||
+        SET_REG(VM_REG_GUEST_X4, 0) ||
+        SET_REG(VM_REG_GUEST_X5, 0) ||
+        SET_REG(VM_REG_GUEST_X6, 0) ||
+        SET_REG(VM_REG_GUEST_X7, 0) ||
+        SET_REG(VM_REG_GUEST_X8, 0) ||
+        SET_REG(VM_REG_GUEST_X9, 0) ||
+        SET_REG(VM_REG_GUEST_X10, 0) ||
+        SET_REG(VM_REG_GUEST_X11, 0) ||
+        SET_REG(VM_REG_GUEST_X12, 0) ||
+        SET_REG(VM_REG_GUEST_X13, 0) ||
+        SET_REG(VM_REG_GUEST_X14, 0) ||
+        SET_REG(VM_REG_GUEST_X15, 0) ||
+        SET_REG(VM_REG_GUEST_X16, 0) ||
+        SET_REG(VM_REG_GUEST_X17, 0) ||
+        SET_REG(VM_REG_GUEST_X18, 0) ||
+        SET_REG(VM_REG_GUEST_X19, 0) ||
+        SET_REG(VM_REG_GUEST_X20, 0) ||
+        SET_REG(VM_REG_GUEST_X21, 0) ||
+        SET_REG(VM_REG_GUEST_X22, 0) ||
+        SET_REG(VM_REG_GUEST_X23, 0) ||
+        SET_REG(VM_REG_GUEST_X24, 0) ||
+        SET_REG(VM_REG_GUEST_X25, 0) ||
+        SET_REG(VM_REG_GUEST_X26, 0) ||
+        SET_REG(VM_REG_GUEST_X27, 0) ||
+        SET_REG(VM_REG_GUEST_X28, 0) ||
+        SET_REG(VM_REG_GUEST_FP, 0) ||  // Frame pointer (X29)
+        SET_REG(VM_REG_GUEST_LR, 0) ||  // Link register (X30)
+        SET_REG(VM_REG_GUEST_SPSR, 0)   // SPSR (Saved Program Status Register)
+    ) {
+        return error;
+    }
+
+    return 0;
+}
+
+int
+xh_vcpu_reset2(int vcpu)
+{
+    printf("xh_vcpu_reset\n");
+    int error;
+
+#define SET_REG(r, v) (error = xh_vm_set_register(vcpu, (r), (v)))
+
+    if (SET_REG(VM_REG_GUEST_PC, 0x0) ||         // Program Counter (PC)
+        SET_REG(VM_REG_GUEST_PSTATE, 0x3C5) ||   // PSTATE
+        SET_REG(VM_REG_GUEST_SP_EL1, 0) ||       // Stack Pointer for EL1 (SP_EL1)
+        SET_REG(VM_REG_GUEST_R0, 0) ||           // General-purpose registers R0 to R29
+        SET_REG(VM_REG_GUEST_R1, 0) ||
+        SET_REG(VM_REG_GUEST_R2, 0) ||
+        SET_REG(VM_REG_GUEST_R3, 0) ||
+        SET_REG(VM_REG_GUEST_R4, 0) ||
+        SET_REG(VM_REG_GUEST_R5, 0) ||
+        SET_REG(VM_REG_GUEST_R6, 0) ||
+        SET_REG(VM_REG_GUEST_R7, 0) ||
+        SET_REG(VM_REG_GUEST_R8, 0) ||
+        SET_REG(VM_REG_GUEST_R9, 0) ||
+        SET_REG(VM_REG_GUEST_R10, 0) ||
+        SET_REG(VM_REG_GUEST_R11, 0) ||
+        SET_REG(VM_REG_GUEST_R12, 0) ||
+        SET_REG(VM_REG_GUEST_R13, 0) ||
+        SET_REG(VM_REG_GUEST_R14, 0) ||
+        SET_REG(VM_REG_GUEST_R15, 0) ||
+        SET_REG(VM_REG_GUEST_R16, 0) ||
+        SET_REG(VM_REG_GUEST_R17, 0) ||
+        SET_REG(VM_REG_GUEST_R18, 0) ||
+        SET_REG(VM_REG_GUEST_R19, 0) ||
+        SET_REG(VM_REG_GUEST_R20, 0) ||
+        SET_REG(VM_REG_GUEST_R21, 0) ||
+        SET_REG(VM_REG_GUEST_R22, 0) ||
+        SET_REG(VM_REG_GUEST_R23, 0) ||
+        SET_REG(VM_REG_GUEST_R24, 0) ||
+        SET_REG(VM_REG_GUEST_R25, 0) ||
+        SET_REG(VM_REG_GUEST_R26, 0) ||
+        SET_REG(VM_REG_GUEST_R27, 0) ||
+        SET_REG(VM_REG_GUEST_R28, 0) ||
+        SET_REG(VM_REG_GUEST_FP, 0) ||           // Frame Pointer (R29)
+        SET_REG(VM_REG_GUEST_LR, 0) ||           // Link Register (R30)
+        SET_REG(VM_REG_GUEST_SPSR, 0)            // Saved Program Status Register (SPSR)
+    ) {
+        return error;
+    }
+
+    return 0;
+}
+#endif
 
 int
 xh_vm_active_cpus(cpuset_t *cpus)

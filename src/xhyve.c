@@ -1,4 +1,4 @@
-/*-
+/*
  * Copyright (c) 2011 NetApp, Inc.
  * Copyright (c) 2015 xhyve developers
  * All rights reserved.
@@ -580,6 +580,7 @@ static vmexit_handler_t handler[VM_EXITCODE_MAX] = {
 void
 vcpu_set_capabilities(int cpu)
 {
+printf("vcpu_set_capabilities\n");
 	int err, tmp;
 
 	if (fbsdrun_vmexit_on_hlt()) {
@@ -820,6 +821,7 @@ remove_pidfile()
 static int
 setup_pidfile()
 {
+	printf("setup_pidfile");
 	int f, error, pid;
 	char pid_str[21];
 
@@ -852,10 +854,11 @@ setup_pidfile()
 	if (error < 0)
 		goto fail;
 
+	printf("setup_pidfile - complete\n");
 	return 0;
 
 fail:
-	fprintf(stderr, "Failed to set up pidfile\n");
+	printf(stderr, "Failed to set up pidfile\n");
 	return -1;
 }
 
@@ -879,20 +882,24 @@ main(int argc, char *argv[])
 	rtc_localtime = 1;
 	fw = 0;
 
-	while ((c = getopt(argc, argv, "behvuwxMACHPWY:f:F:g:c:s:m:l:U:")) != -1) {
+	//while ((c = getopt(argc, argv, "behvuwxMACHPWY:f:F:g:c:s:m:l:U:")) != -1) {
+	while ((c = getopt(argc, argv, "hvCY:F:c:m:")) != -1) {
 		switch (c) {
+#if 0
 		case 'A':
 			acpi = 1;
 			break;
 		case 'b':
 			bvmcons = 1;
 			break;
+#endif
 		case 'c':
 			guest_ncpus = atoi(optarg);
 			break;
 		case 'C':
 			dump_guest_memory = 1;
 			break;
+#if 0
 		case 'f':
 			if (firmware_parse(optarg) != 0) {
 				exit (1);
@@ -900,9 +907,12 @@ main(int argc, char *argv[])
 				fw = 1;
 				break;
 			}
+#endif
 		case 'F':
 			pidfile = optarg;
 			break;
+
+#if 0
 		case 'g':
 			gdb_port = atoi(optarg);
 			break;
@@ -917,11 +927,13 @@ main(int argc, char *argv[])
 				exit(1);
 			else
 				break;
+#endif
 		case 'm':
 			error = parse_memsize(optarg, &memsize);
 			if (error)
 				errx(EX_USAGE, "invalid memsize '%s'", optarg);
 			break;
+#if 0
 		case 'M':
 			print_mac = 1;
 			break;
@@ -952,6 +964,7 @@ main(int argc, char *argv[])
 		case 'Y':
 			mptgen = 0;
 			break;
+#endif
 		case 'v':
 			show_version();
 		case 'h':
@@ -961,8 +974,8 @@ main(int argc, char *argv[])
 		}
 	}
 
-	if ((fw != 1) && (lpc_bootrom() == NULL))
-		usage(1);
+	//if ((fw != 1) && (lpc_bootrom() == NULL))
+	//	usage(1);
 
 	error = xh_vm_create();
 	if (error) {
@@ -987,6 +1000,8 @@ main(int argc, char *argv[])
 		fprintf(stderr, "Unable to setup memory (%d)\n", error);
 		exit(1);
 	}
+
+        printf("We should be calling init_msr if we were on Intel\n");
 #if 0
 	error = init_msr();
 	if (error) {
@@ -994,33 +1009,50 @@ main(int argc, char *argv[])
 		exit(1);
 	}
 #endif
+        printf("main - We should have setup the pid file\n");
 	error = setup_pidfile();
 	if (error) {
-		fprintf(stderr, "pidfile error %d\n", error);
-		exit(1);
+		printf(stderr, "pidfile error %d\n", error);
+		//exit(1);
 	}
+        printf("main - done - We should have setup the pid file\n");
 
+        printf("main - calling init_mem\n");
 	init_mem();
-	init_inout();
-    atkbdc_init();
-	pci_irq_init();
-	ioapic_init();
 
-	rtc_init(rtc_localtime);
-	sci_init();
+        printf("main - calling init_inout\n");
+	//init_inout();
+        printf("main - calling init_atkbdc\n");
+        //atkbdc_init();
+
+        printf("main - calling pci_irq_init\n");
+	//pci_irq_init();
+
+        //printf("main - calling ioapic_init\n");
+	//ioapic_init();
+
+        printf("main - calling rtc_init\n");
+//	rtc_init(rtc_localtime);
+
+        printf("main - calling sci_init\n");
+//	sci_init();
 
 	/*
 	 * Exit if a device emulation finds an error in it's initilization
 	 */
-	if (init_pci() != 0)
-		exit(1);
+//	if (init_pci() != 0)
+//		exit(1);
 
-	if (gdb_port != 0)
-		init_dbgport(gdb_port);
+//	if (gdb_port != 0)
+//		printf("We lack a gdb_port\n");
+//		init_dbgport(gdb_port);
 
 	if (bvmcons)
-		init_bvmcons();
-
+        {
+		printf("main - calling init_bvmcons\n");
+		//init_bvmcons();
+	}
+#if 0
 	/*
 	 * build the guest tables, MP etc.
 	 */
@@ -1039,13 +1071,15 @@ main(int argc, char *argv[])
 	}
 
 	rip = 0;
-
+#endif
 	vcpu_add(BSP, BSP, rip);
 
 	/*
 	 * Head off to the main event dispatch loop
 	 */
-	mevent_dispatch();
+//	mevent_dispatch();
 
 	exit(1);
 }
+
+

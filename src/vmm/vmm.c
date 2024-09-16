@@ -431,7 +431,7 @@ vm_name(UNUSED struct vm *vm)
 bool
 vm_mem_allocated(struct vm *vm, uint64_t gpa)
 {
-	printf("vm_mem_allocated\n");
+//	printf("vm_mem_allocated\n");
 	int i;
 	uint64_t gpabase, gpalimit;
 
