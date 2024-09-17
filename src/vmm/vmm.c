@@ -575,6 +575,7 @@ vm_get_register(struct vm *vm, int vcpu, int reg, uint64_t *retval)
 	return (VMGETREG(vm->cookie, vcpu, reg, retval));
 }
 
+#if 0
 int
 vm_set_register(struct vm *vm, int vcpuid, int reg, uint64_t val)
 {
@@ -588,7 +589,7 @@ vm_set_register(struct vm *vm, int vcpuid, int reg, uint64_t val)
 		return (EINVAL);
 
 	error = VMSETREG(vm->cookie, vcpuid, reg, val);
-	if (error || reg != VM_REG_GUEST_RIP)
+	if (error || reg != VM_REG_GUEST_XIP)
 		return (error);
 
 	/* Set 'nextrip' to match the value of %rip */
@@ -598,6 +599,34 @@ vm_set_register(struct vm *vm, int vcpuid, int reg, uint64_t val)
 	return (0);
 }
 
+#endif
+
+int
+vm_set_register(struct vm *vm, int vcpuid, int reg, uint64_t val)
+{
+        struct vcpu *vcpu;
+        int error;
+
+        if (vcpuid < 0 || vcpuid >= VM_MAXCPU)
+                return (EINVAL);
+
+        if (reg >= VM_REG_LAST)
+                return (EINVAL);
+
+        error = VMSETREG(vm->cookie, vcpuid, reg, val);
+        //if (error || reg != VM_REG_GUEST_ELR_EL1)  // Change to ARM64 equivalent register
+        if (error || reg != VM_REG_GUEST_VBAR_EL1)  // Change to ARM64 equivalent register
+                return (error);
+
+        /* Set 'nextrip' to match the value of PC/ELR_EL1 */
+        VCPU_CTR1(vm, vcpuid, "Setting nextrip to %#llx", val);
+        vcpu = &vm->vcpu[vcpuid];
+        vcpu->nextrip = val;  // This might need adjustment based on your ARM64 context
+        return (0);
+}
+
+
+#if 0
 static bool
 is_descriptor_table(int reg)
 {
@@ -627,6 +656,8 @@ is_segment_register(int reg)
 		return (FALSE);
 	}
 }
+#endif
+
 
 int
 vm_get_seg_desc(struct vm *vm, int vcpu, int reg,
@@ -1157,6 +1188,7 @@ restart:
 	return (error);
 }
 
+#if 0
 int
 vm_restart_instruction(void *arg, int vcpuid)
 {
@@ -1189,7 +1221,7 @@ vm_restart_instruction(void *arg, int vcpuid)
 		 * Thus instruction restart is achieved by setting 'nextrip'
 		 * to the vcpu's %rip.
 		 */
-		error = vm_get_register(vm, vcpuid, VM_REG_GUEST_RIP, &rip);
+		error = vm_get_register(vm, vcpuid, VM_REG_GUEST_XIP, &rip);
 		KASSERT(!error, ("%s: error %d getting rip", __func__, error));
 		VCPU_CTR2(vm, vcpuid, "restarting instruction by updating "
 		    "nextrip from %#llx to %#llx", vcpu->nextrip, rip);
@@ -1199,6 +1231,50 @@ vm_restart_instruction(void *arg, int vcpuid)
 	}
 	return (0);
 }
+#endif
+
+int
+vm_restart_instruction(void *arg, int vcpuid)
+{
+    struct vm *vm;
+    struct vcpu *vcpu;
+    enum vcpu_state state;
+    uint64_t pc;  // Program counter in ARM64
+    int error;
+
+    vm = arg;
+    if (vcpuid < 0 || vcpuid >= VM_MAXCPU)
+        return (EINVAL);
+
+    vcpu = &vm->vcpu[vcpuid];
+    state = vcpu_get_state(vm, vcpuid);
+    
+    if (state == VCPU_RUNNING) {
+        /*
+         * For a running vcpu, if we need to restart the instruction,
+         * handle this by setting the instruction length to zero or
+         * use an ARM64-specific mechanism.
+         */
+        vcpu->exitinfo.inst_length = 0;
+       // VCPU_CTR1(vm, vcpuid, "Restarting instruction by setting "
+         //   "inst_length to zero at PC %#llx", vcpu->exitinfo.pc); // Adjust this field as necessary
+    } else if (state == VCPU_FROZEN) {
+        /*
+         * When a vcpu is frozen, use the program counter (PC) for
+         * instruction restart. ARM64 uses the PC to determine the
+         * current execution point.
+         */
+        error = vm_get_register(vm, vcpuid, VM_REG_GUEST_PC, &pc);
+        KASSERT(!error, ("%s: error %d getting PC", __func__, error));
+        VCPU_CTR2(vm, vcpuid, "Restarting instruction by updating "
+            "PC from %#llx to %#llx", vcpu->nextrip, pc);
+        vcpu->nextrip = pc;
+    } else {
+        xhyve_abort("%s: invalid state %d\n", __func__, state);
+    }
+    return (0);
+}
+
 
 int
 vm_exit_intinfo(struct vm *vm, int vcpuid, uint64_t info)
@@ -1396,6 +1472,7 @@ vm_get_intinfo(struct vm *vm, int vcpuid, uint64_t *info1, uint64_t *info2)
 	return (0);
 }
 
+#if 0
 int
 vm_inject_exception(struct vm *vm, int vcpuid, int vector, int errcode_valid,
     uint32_t errcode, int restart_instruction)
@@ -1446,6 +1523,43 @@ vm_inject_exception(struct vm *vm, int vcpuid, int vector, int errcode_valid,
 	return (0);
 }
 
+#endif
+
+int
+vm_inject_exception(struct vm *vm, int vcpuid, int vector, int errcode_valid,
+    uint32_t errcode, int restart_instruction)
+{
+    struct vcpu *vcpu;
+    int error;
+
+    if (vcpuid < 0 || vcpuid >= VM_MAXCPU)
+        return (EINVAL);
+
+    if (vector < 0 || vector >= 32) // Adjust vector range for ARM exception types
+        return (EINVAL);
+
+    vcpu = &vm->vcpu[vcpuid];
+
+    if (vcpu->exception_pending) {
+        VCPU_CTR2(vm, vcpuid, "Unable to inject exception %d due to "
+            "pending exception %d", vector, vcpu->exc_vector);
+        return (EBUSY);
+    }
+
+    // No direct analog for interrupt shadow in ARM; skip this for ARM64
+
+    if (restart_instruction)
+        vm_restart_instruction(vm, vcpuid);
+
+    vcpu->exception_pending = 1;
+    vcpu->exc_vector = vector;
+    vcpu->exc_errcode = errcode;
+    vcpu->exc_errcode_valid = errcode_valid;
+    VCPU_CTR1(vm, vcpuid, "Exception %d pending", vector);
+    return (0);
+}
+
+
 void
 vm_inject_fault(void *vmarg, int vcpuid, int vector, int errcode_valid,
     int errcode)
@@ -1461,6 +1575,7 @@ vm_inject_fault(void *vmarg, int vcpuid, int vector, int errcode_valid,
 	KASSERT(error == 0, ("vm_inject_exception error %d", error));
 }
 
+#if 0
 void
 vm_inject_pf(void *vmarg, int vcpuid, int error_code, uint64_t cr2)
 {
@@ -1476,6 +1591,29 @@ vm_inject_pf(void *vmarg, int vcpuid, int error_code, uint64_t cr2)
 
 	vm_inject_fault(vm, vcpuid, IDT_PF, 1, error_code);
 }
+#endif
+
+#define ARM64_VECTOR_DATA_ABORT 0x01  // Example value; adjust as necessary
+
+
+void
+vm_inject_pf(void *vmarg, int vcpuid, int error_code)
+{
+    struct vm *vm;
+    int error;
+
+    vm = vmarg;
+    VCPU_CTR1(vm, vcpuid, "Injecting page fault: error_code %#x", error_code);
+
+    // ARM64 does not have a CR2 equivalent, so skip setting it
+
+    // Inject a page fault exception
+    // ARM64 typically uses a specific vector for data aborts; adjust as needed
+    error = vm_inject_exception(vm, vcpuid, ARM64_VECTOR_DATA_ABORT, 1, error_code, 0);
+    KASSERT(error == 0, ("vm_inject_exception error %d", error));
+}
+
+
 
 static VMM_STAT(VCPU_NMI_COUNT, "number of NMIs delivered to vcpu");
 
@@ -1833,6 +1971,7 @@ vm_rtc(struct vm *vm)
 	return (vm->vrtc);
 }
 
+#if 0
 enum vm_reg_name
 vm_segment_name(int seg)
 {
@@ -1849,6 +1988,7 @@ vm_segment_name(int seg)
 	    ("%s: invalid segment encoding %d", __func__, seg));
 	return (seg_names[seg]);
 }
+#endif
 
 void
 vm_copy_teardown(UNUSED struct vm *vm, UNUSED int vcpuid,

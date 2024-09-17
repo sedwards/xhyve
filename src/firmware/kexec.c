@@ -274,12 +274,12 @@ kexec(void)
 	xh_vm_set_register(0, VM_REG_GUEST_ES, 0x18);
 	xh_vm_set_register(0, VM_REG_GUEST_SS, 0x18);
 	xh_vm_set_register(0, VM_REG_GUEST_CR0, 0x21); /* enable protected mode */
-	xh_vm_set_register(0, VM_REG_GUEST_RBP, 0);
-	xh_vm_set_register(0, VM_REG_GUEST_RDI, 0);
-	xh_vm_set_register(0, VM_REG_GUEST_RBX, 0);
-	xh_vm_set_register(0, VM_REG_GUEST_RFLAGS, 0x2);
-	xh_vm_set_register(0, VM_REG_GUEST_RSI, BASE_ZEROPAGE);
-	xh_vm_set_register(0, VM_REG_GUEST_RIP, kernel.base);
+	xh_vm_set_register(0, VM_REG_GUEST_XBP, 0);
+	xh_vm_set_register(0, VM_REG_GUEST_XDI, 0);
+	xh_vm_set_register(0, VM_REG_GUEST_XBX, 0);
+	xh_vm_set_register(0, VM_REG_GUEST_XFLAGS, 0x2);
+	xh_vm_set_register(0, VM_REG_GUEST_XSI, BASE_ZEROPAGE);
+	xh_vm_set_register(0, VM_REG_GUEST_XIP, kernel.base);
 
 	return kernel.base;
 }

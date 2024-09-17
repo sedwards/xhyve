@@ -40,7 +40,10 @@ ARM_64_SRC := \
 	src/vmm/arm64/vmm/vmm_instruction_emul.c \
 	src/vmm/arm64/vmm/vmm_mmu.c \
 	src/vmm/arm64/vmm/vmm_reset.c \
-	src/vmm/arm64/vmm/vmm_stat.c
+	src/vmm/arm64/vmm/vmm_stat.c \
+	src/vmm/arm64/vmm/io/vgic.c \
+	src/vmm/arm64/vmm/io/vgic_v3.c \
+	src/vmm/arm64/vmm/io/vtimer.c
 
 XHYVE_SRC := \
 	src/acpitbl.c \

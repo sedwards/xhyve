@@ -431,14 +431,14 @@ tss32_save(int vcpu, struct vm_task_switch *task_switch,
 {
 
 	/* General purpose registers */
-	tss->tss_eax = (uint32_t) GETREG(vcpu, VM_REG_GUEST_RAX);
-	tss->tss_ecx = (uint32_t) GETREG(vcpu, VM_REG_GUEST_RCX);
-	tss->tss_edx = (uint32_t) GETREG(vcpu, VM_REG_GUEST_RDX);
-	tss->tss_ebx = (uint32_t) GETREG(vcpu, VM_REG_GUEST_RBX);
-	tss->tss_esp = (uint32_t) GETREG(vcpu, VM_REG_GUEST_RSP);
-	tss->tss_ebp = (uint32_t) GETREG(vcpu, VM_REG_GUEST_RBP);
-	tss->tss_esi = (uint32_t) GETREG(vcpu, VM_REG_GUEST_RSI);
-	tss->tss_edi = (uint32_t) GETREG(vcpu, VM_REG_GUEST_RDI);
+	tss->tss_eax = (uint32_t) GETREG(vcpu, VM_REG_GUEST_XAX);
+	tss->tss_ecx = (uint32_t) GETREG(vcpu, VM_REG_GUEST_XCX);
+	tss->tss_edx = (uint32_t) GETREG(vcpu, VM_REG_GUEST_XDX);
+	tss->tss_ebx = (uint32_t) GETREG(vcpu, VM_REG_GUEST_XBX);
+	tss->tss_esp = (uint32_t) GETREG(vcpu, VM_REG_GUEST_XSP);
+	tss->tss_ebp = (uint32_t) GETREG(vcpu, VM_REG_GUEST_XBP);
+	tss->tss_esi = (uint32_t) GETREG(vcpu, VM_REG_GUEST_XSI);
+	tss->tss_edi = (uint32_t) GETREG(vcpu, VM_REG_GUEST_XDI);
 
 	/* Segment selectors */
 	tss->tss_es = (uint16_t) GETREG(vcpu, VM_REG_GUEST_ES);
@@ -449,7 +449,7 @@ tss32_save(int vcpu, struct vm_task_switch *task_switch,
 	tss->tss_gs = (uint16_t) GETREG(vcpu, VM_REG_GUEST_GS);
 
 	/* eflags and eip */
-	tss->tss_eflags = (uint32_t) GETREG(vcpu, VM_REG_GUEST_RFLAGS);
+	tss->tss_eflags = (uint32_t) GETREG(vcpu, VM_REG_GUEST_XFLAGS);
 	if (task_switch->reason == TSR_IRET)
 		tss->tss_eflags &= ~((unsigned) PSL_NT);
 	tss->tss_eip = eip;
@@ -525,18 +525,18 @@ tss32_restore(int vcpu, struct vm_task_switch *ts, uint16_t ot_sel,
 	}
 
 	/* eflags and eip */
-	SETREG(vcpu, VM_REG_GUEST_RFLAGS, eflags);
-	SETREG(vcpu, VM_REG_GUEST_RIP, tss->tss_eip);
+	SETREG(vcpu, VM_REG_GUEST_XFLAGS, eflags);
+	SETREG(vcpu, VM_REG_GUEST_XIP, tss->tss_eip);
 
 	/* General purpose registers */
-	SETREG(vcpu, VM_REG_GUEST_RAX, tss->tss_eax);
-	SETREG(vcpu, VM_REG_GUEST_RCX, tss->tss_ecx);
-	SETREG(vcpu, VM_REG_GUEST_RDX, tss->tss_edx);
-	SETREG(vcpu, VM_REG_GUEST_RBX, tss->tss_ebx);
-	SETREG(vcpu, VM_REG_GUEST_RSP, tss->tss_esp);
-	SETREG(vcpu, VM_REG_GUEST_RBP, tss->tss_ebp);
-	SETREG(vcpu, VM_REG_GUEST_RSI, tss->tss_esi);
-	SETREG(vcpu, VM_REG_GUEST_RDI, tss->tss_edi);
+	SETREG(vcpu, VM_REG_GUEST_XAX, tss->tss_eax);
+	SETREG(vcpu, VM_REG_GUEST_XCX, tss->tss_ecx);
+	SETREG(vcpu, VM_REG_GUEST_XDX, tss->tss_edx);
+	SETREG(vcpu, VM_REG_GUEST_XBX, tss->tss_ebx);
+	SETREG(vcpu, VM_REG_GUEST_XSP, tss->tss_esp);
+	SETREG(vcpu, VM_REG_GUEST_XBP, tss->tss_ebp);
+	SETREG(vcpu, VM_REG_GUEST_XSI, tss->tss_esi);
+	SETREG(vcpu, VM_REG_GUEST_XDI, tss->tss_edi);
 
 	/* Segment selectors */
 	SETREG(vcpu, VM_REG_GUEST_ES, tss->tss_es);
@@ -628,7 +628,7 @@ push_errcode(int vcpu, struct vm_guest_paging *paging, int task_type,
 	*faultptr = 0;
 
 	cr0 = GETREG(vcpu, VM_REG_GUEST_CR0);
-	rflags = GETREG(vcpu, VM_REG_GUEST_RFLAGS);
+	rflags = GETREG(vcpu, VM_REG_GUEST_XFLAGS);
 	stacksel = (uint16_t) GETREG(vcpu, VM_REG_GUEST_SS);
 
 	error = xh_vm_get_desc(vcpu, VM_REG_GUEST_SS, &seg_desc.base,
@@ -655,7 +655,7 @@ push_errcode(int vcpu, struct vm_guest_paging *paging, int task_type,
 	else
 		stacksize = 2;
 
-	esp = (uint32_t) GETREG(vcpu, VM_REG_GUEST_RSP);
+	esp = (uint32_t) GETREG(vcpu, VM_REG_GUEST_XSP);
 	esp -= (uint32_t) bytes;
 
 	if (vie_calculate_gla(paging->cpu_mode, VM_REG_GUEST_SS, &seg_desc, esp,
@@ -678,7 +678,7 @@ push_errcode(int vcpu, struct vm_guest_paging *paging, int task_type,
 		return (error);
 
 	xh_vm_copyout(&errcode, iov, ((size_t) bytes));
-	SETREG(vcpu, VM_REG_GUEST_RSP, esp);
+	SETREG(vcpu, VM_REG_GUEST_XSP, esp);
 	return (0);
 }
 
@@ -874,7 +874,7 @@ vmexit_task_switch(struct vm_exit *vmexit, int *pvcpu)
 	 * after this point will be handled in the context of the new task and
 	 * the saved instruction pointer will belong to the new task.
 	 */
-	error = xh_vm_set_register(vcpu, VM_REG_GUEST_RIP, newtss.tss_eip);
+	error = xh_vm_set_register(vcpu, VM_REG_GUEST_XIP, newtss.tss_eip);
 	assert(error == 0);
 
 	/* Load processor state from new TSS */

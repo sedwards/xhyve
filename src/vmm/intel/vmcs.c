@@ -63,11 +63,11 @@ vmcs_field_encoding(int ident)
 		return (VMCS_GUEST_CR4);
 	case VM_REG_GUEST_DR7:
 		return (VMCS_GUEST_DR7);
-	case VM_REG_GUEST_RSP:
+	case VM_REG_GUEST_XSP:
 		return (VMCS_GUEST_RSP);
-	case VM_REG_GUEST_RIP:
+	case VM_REG_GUEST_XIP:
 		return (VMCS_GUEST_RIP);
-	case VM_REG_GUEST_RFLAGS:
+	case VM_REG_GUEST_XFLAGS:
 		return (VMCS_GUEST_RFLAGS);
 	case VM_REG_GUEST_ES:
 		return (VMCS_GUEST_ES_SELECTOR);

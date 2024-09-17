@@ -241,7 +241,7 @@ spinup_ap_realmode(int newcpu, uint64_t *rip)
 	 * Update the %cs and %rip of the guest so that it starts
 	 * executing real mode code at at 'vector << 12'.
 	 */
-	error = xh_vm_set_register(newcpu, VM_REG_GUEST_RIP, *rip);
+	error = xh_vm_set_register(newcpu, VM_REG_GUEST_XIP, *rip);
 	assert(error == 0);
 
 	error = xh_vm_get_desc(newcpu, VM_REG_GUEST_CS, &desc_base, &desc_limit,
@@ -399,11 +399,11 @@ vmexit_rdmsr(struct vm_exit *vme, int *pvcpu)
 	}
 
 	eax = (uint32_t) val;
-	error = xh_vm_set_register(*pvcpu, VM_REG_GUEST_RAX, eax);
+	error = xh_vm_set_register(*pvcpu, VM_REG_GUEST_XAX, eax);
 	assert(error == 0);
 
 	edx = val >> 32;
-	error = xh_vm_set_register(*pvcpu, VM_REG_GUEST_RDX, edx);
+	error = xh_vm_set_register(*pvcpu, VM_REG_GUEST_XDX, edx);
 	assert(error == 0);
 
 	return (VMEXIT_CONTINUE);
@@ -634,7 +634,7 @@ vcpu_loop(int vcpu, uint64_t startrip)
 	error = xh_vm_active_cpus(&active_cpus);
 	assert(CPU_ISSET(((unsigned) vcpu), &active_cpus));
 
-	error = xh_vm_set_register(vcpu, VM_REG_GUEST_RIP, startrip);
+	error = xh_vm_set_register(vcpu, VM_REG_GUEST_XIP, startrip);
 	assert(error == 0);
 
 	while (1) {

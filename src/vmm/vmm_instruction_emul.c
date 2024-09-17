@@ -221,22 +221,22 @@ static const struct vie_op one_byte_opcodes[256] = {
 #define	GB				(1024 * 1024 * 1024)
 
 static enum vm_reg_name gpr_map[16] = {
-	VM_REG_GUEST_RAX,
-	VM_REG_GUEST_RCX,
-	VM_REG_GUEST_RDX,
-	VM_REG_GUEST_RBX,
-	VM_REG_GUEST_RSP,
-	VM_REG_GUEST_RBP,
-	VM_REG_GUEST_RSI,
-	VM_REG_GUEST_RDI,
-	VM_REG_GUEST_R8,
-	VM_REG_GUEST_R9,
-	VM_REG_GUEST_R10,
-	VM_REG_GUEST_R11,
-	VM_REG_GUEST_R12,
-	VM_REG_GUEST_R13,
-	VM_REG_GUEST_R14,
-	VM_REG_GUEST_R15
+	VM_REG_GUEST_XAX,
+	VM_REG_GUEST_XCX,
+	VM_REG_GUEST_XDX,
+	VM_REG_GUEST_XBX,
+	VM_REG_GUEST_XSP,
+	VM_REG_GUEST_XBP,
+	VM_REG_GUEST_XSI,
+	VM_REG_GUEST_XDI,
+	VM_REG_GUEST_X8,
+	VM_REG_GUEST_X9,
+	VM_REG_GUEST_X10,
+	VM_REG_GUEST_X11,
+	VM_REG_GUEST_X12,
+	VM_REG_GUEST_X13,
+	VM_REG_GUEST_X14,
+	VM_REG_GUEST_X15
 };
 
 static uint64_t size2mask[] = {
@@ -501,7 +501,7 @@ emulate_mov(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
 		 */
 		error = memread(vm, vcpuid, gpa, &val, size, arg);
 		if (error == 0) {
-			reg = VM_REG_GUEST_RAX;
+			reg = VM_REG_GUEST_XAX;
 			error = vie_update_register(vm, vcpuid, reg, val, size);
 		}
 		break;
@@ -512,7 +512,7 @@ emulate_mov(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
 		 * A3:		mov moffs32, EAX 
 		 * REX.W + A3:	mov moffs64, RAX
 		 */
-		error = vie_read_register(vm, vcpuid, VM_REG_GUEST_RAX, &val);
+		error = vie_read_register(vm, vcpuid, VM_REG_GUEST_XAX, &val);
 		if (error == 0) {
 			val &= size2mask[size];
 			error = memwrite(vm, vcpuid, gpa, val, size, arg);
@@ -646,7 +646,7 @@ get_gla(void *vm, int vcpuid, UNUSED struct vie *vie,
 	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_CR0, &cr0);
 	KASSERT(error == 0, ("%s: error %d getting cr0", __func__, error));
 
-	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_RFLAGS, &rflags);
+	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_XFLAGS, &rflags);
 	KASSERT(error == 0, ("%s: error %d getting rflags", __func__, error));
 
 	error = vm_get_seg_desc(vm, vcpuid, (int) seg, &desc);
@@ -712,7 +712,7 @@ emulate_movs(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
 	repeat = vie->repz_present | vie->repnz_present;
 
 	if (repeat) {
-		error = vie_read_register(vm, vcpuid, VM_REG_GUEST_RCX, &rcx);
+		error = vie_read_register(vm, vcpuid, VM_REG_GUEST_XCX, &rcx);
 		KASSERT(!error, ("%s: error %d getting rcx", __func__, error));
 
 		/*
@@ -743,7 +743,7 @@ emulate_movs(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
 
 	seg = vie->segment_override ? vie->segment_register : VM_REG_GUEST_DS;
 	error = get_gla(vm, vcpuid, vie, paging, opsize, vie->addrsize,
-	    XHYVE_PROT_READ, ((enum vm_reg_name) seg), VM_REG_GUEST_RSI, &srcaddr,
+	    XHYVE_PROT_READ, ((enum vm_reg_name) seg), VM_REG_GUEST_XSI, &srcaddr,
 	     &fault);
 	if (error || fault)
 		goto done;
@@ -769,7 +769,7 @@ emulate_movs(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
 		 */
 
 		error = get_gla(vm, vcpuid, vie, paging, opsize, vie->addrsize,
-		    XHYVE_PROT_WRITE, VM_REG_GUEST_ES, VM_REG_GUEST_RDI, &dstaddr,
+		    XHYVE_PROT_WRITE, VM_REG_GUEST_ES, VM_REG_GUEST_XDI, &dstaddr,
 		    &fault);
 		if (error || fault)
 			goto done;
@@ -824,13 +824,13 @@ emulate_movs(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
 		}
 	}
 
-	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_RSI, &rsi);
+	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_XSI, &rsi);
 	KASSERT(error == 0, ("%s: error %d getting rsi", __func__, error));
 
-	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_RDI, &rdi);
+	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_XDI, &rdi);
 	KASSERT(error == 0, ("%s: error %d getting rdi", __func__, error));
 
-	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_RFLAGS, &rflags);
+	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_XFLAGS, &rflags);
 	KASSERT(error == 0, ("%s: error %d getting rflags", __func__, error));
 
 	if (rflags & PSL_D) {
@@ -841,17 +841,17 @@ emulate_movs(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
 		rdi += ((uint64_t) opsize);
 	}
 
-	error = vie_update_register(vm, vcpuid, VM_REG_GUEST_RSI, rsi,
+	error = vie_update_register(vm, vcpuid, VM_REG_GUEST_XSI, rsi,
 	    vie->addrsize);
 	KASSERT(error == 0, ("%s: error %d updating rsi", __func__, error));
 
-	error = vie_update_register(vm, vcpuid, VM_REG_GUEST_RDI, rdi,
+	error = vie_update_register(vm, vcpuid, VM_REG_GUEST_XDI, rdi,
 	    vie->addrsize);
 	KASSERT(error == 0, ("%s: error %d updating rdi", __func__, error));
 
 	if (repeat) {
 		rcx = rcx - 1;
-		error = vie_update_register(vm, vcpuid, VM_REG_GUEST_RCX,
+		error = vie_update_register(vm, vcpuid, VM_REG_GUEST_XCX,
 		    rcx, vie->addrsize);
 		KASSERT(!error, ("%s: error %d updating rcx", __func__, error));
 
@@ -881,7 +881,7 @@ emulate_stos(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
 	rcx = 0;
 
 	if (repeat) {
-		error = vie_read_register(vm, vcpuid, VM_REG_GUEST_RCX, &rcx);
+		error = vie_read_register(vm, vcpuid, VM_REG_GUEST_XCX, &rcx);
 		KASSERT(!error, ("%s: error %d getting rcx", __func__, error));
 
 		/*
@@ -892,17 +892,17 @@ emulate_stos(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
 			return (0);
 	}
 
-	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_RAX, &val);
+	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_XAX, &val);
 	KASSERT(!error, ("%s: error %d getting rax", __func__, error));
 
 	error = memwrite(vm, vcpuid, gpa, val, opsize, arg);
 	if (error)
 		return (error);
 
-	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_RDI, &rdi);
+	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_XDI, &rdi);
 	KASSERT(error == 0, ("%s: error %d getting rdi", __func__, error));
 
-	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_RFLAGS, &rflags);
+	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_XFLAGS, &rflags);
 	KASSERT(error == 0, ("%s: error %d getting rflags", __func__, error));
 
 	if (rflags & PSL_D)
@@ -910,13 +910,13 @@ emulate_stos(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
 	else
 		rdi += ((uint64_t) opsize);
 
-	error = vie_update_register(vm, vcpuid, VM_REG_GUEST_RDI, rdi,
+	error = vie_update_register(vm, vcpuid, VM_REG_GUEST_XDI, rdi,
 	    vie->addrsize);
 	KASSERT(error == 0, ("%s: error %d updating rdi", __func__, error));
 
 	if (repeat) {
 		rcx = rcx - 1;
-		error = vie_update_register(vm, vcpuid, VM_REG_GUEST_RCX,
+		error = vie_update_register(vm, vcpuid, VM_REG_GUEST_XCX,
 		    rcx, vie->addrsize);
 		KASSERT(!error, ("%s: error %d updating rcx", __func__, error));
 
@@ -1001,7 +1001,7 @@ emulate_and(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
 	if (error)
 		return (error);
 
-	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_RFLAGS, &rflags);
+	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_XFLAGS, &rflags);
 	if (error)
 		return (error);
 
@@ -1015,7 +1015,7 @@ emulate_and(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
 	rflags &= ~((uint64_t) RFLAGS_STATUS_BITS);
 	rflags |= rflags2 & (PSL_PF | PSL_Z | PSL_N);
 
-	error = vie_update_register(vm, vcpuid, VM_REG_GUEST_RFLAGS, rflags, 8);
+	error = vie_update_register(vm, vcpuid, VM_REG_GUEST_XFLAGS, rflags, 8);
 	return (error);
 }
 
@@ -1064,7 +1064,7 @@ emulate_or(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
 	if (error)
 		return (error);
 
-	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_RFLAGS, &rflags);
+	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_XFLAGS, &rflags);
 	if (error)
 		return (error);
 
@@ -1078,7 +1078,7 @@ emulate_or(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
 	rflags &= ~((uint64_t) RFLAGS_STATUS_BITS);
 	rflags |= rflags2 & (PSL_PF | PSL_Z | PSL_N);
 
-	error = vie_update_register(vm, vcpuid, VM_REG_GUEST_RFLAGS, rflags, 8);
+	error = vie_update_register(vm, vcpuid, VM_REG_GUEST_XFLAGS, rflags, 8);
 	return (error);
 }
 
@@ -1153,13 +1153,13 @@ emulate_cmp(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
 	default:
 		return (EINVAL);
 	}
-	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_RFLAGS, &rflags);
+	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_XFLAGS, &rflags);
 	if (error)
 		return (error);
 	rflags &= ~((uint64_t) RFLAGS_STATUS_BITS);
 	rflags |= rflags2 & RFLAGS_STATUS_BITS;
 
-	error = vie_update_register(vm, vcpuid, VM_REG_GUEST_RFLAGS, rflags, 8);
+	error = vie_update_register(vm, vcpuid, VM_REG_GUEST_XFLAGS, rflags, 8);
 	return (error);
 }
 
@@ -1197,7 +1197,7 @@ emulate_test(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
 	default:
 		return (EINVAL);
 	}
-	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_RFLAGS, &rflags);
+	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_XFLAGS, &rflags);
 	if (error)
 		return (error);
 
@@ -1208,7 +1208,7 @@ emulate_test(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
 	rflags &= ~((uint64_t) RFLAGS_STATUS_BITS);
 	rflags |= rflags2 & (PSL_PF | PSL_Z | PSL_N);
 
-	error = vie_update_register(vm, vcpuid, VM_REG_GUEST_RFLAGS, rflags, 8);
+	error = vie_update_register(vm, vcpuid, VM_REG_GUEST_XFLAGS, rflags, 8);
 	return (error);
 }
 
@@ -1257,14 +1257,14 @@ emulate_sub(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
 
 	if (!error) {
 		rflags2 = getcc(size, val1, val2);
-		error = vie_read_register(vm, vcpuid, VM_REG_GUEST_RFLAGS,
+		error = vie_read_register(vm, vcpuid, VM_REG_GUEST_XFLAGS,
 		    &rflags);
 		if (error)
 			return (error);
 
 		rflags &= ~((uint64_t) RFLAGS_STATUS_BITS);
 		rflags |= rflags2 & RFLAGS_STATUS_BITS;
-		error = vie_update_register(vm, vcpuid, VM_REG_GUEST_RFLAGS,
+		error = vie_update_register(vm, vcpuid, VM_REG_GUEST_XFLAGS,
 		    rflags, 8);
 	}
 
@@ -1318,10 +1318,10 @@ emulate_stack_op(void *vm, int vcpuid, uint64_t mmio_gpa, struct vie *vie,
 	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_CR0, &cr0);
 	KASSERT(error == 0, ("%s: error %d getting cr0", __func__, error));
 
-	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_RFLAGS, &rflags);
+	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_XFLAGS, &rflags);
 	KASSERT(error == 0, ("%s: error %d getting rflags", __func__, error));
 
-	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_RSP, &rsp);
+	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_XSP, &rsp);
 	KASSERT(error == 0, ("%s: error %d getting rsp", __func__, error));
 	if (pushop) {
 		rsp -= ((uint64_t) size);
@@ -1362,7 +1362,7 @@ emulate_stack_op(void *vm, int vcpuid, uint64_t mmio_gpa, struct vie *vie,
 	vm_copy_teardown(vm, vcpuid, copyinfo, nitems(copyinfo));
 
 	if (error == 0) {
-		error = vie_update_register(vm, vcpuid, VM_REG_GUEST_RSP, rsp,
+		error = vie_update_register(vm, vcpuid, VM_REG_GUEST_XSP, rsp,
 		    stackaddrsize);
 		KASSERT(error == 0, ("error %d updating rsp", error));
 	}
@@ -1455,7 +1455,7 @@ emulate_bittest(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
 	if ((vie->reg & 7) != 4)
 		return (EINVAL);
 
-	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_RFLAGS, &rflags);
+	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_XFLAGS, &rflags);
 	KASSERT(error == 0, ("%s: error %d getting rflags", __func__, error));
 
 	error = memread(vm, vcpuid, gpa, &val, vie->opsize, memarg);
@@ -1475,7 +1475,7 @@ emulate_bittest(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
 	else
 		rflags &= ~((uint64_t) PSL_C);
 
-	error = vie_update_register(vm, vcpuid, VM_REG_GUEST_RFLAGS, rflags, 8);
+	error = vie_update_register(vm, vcpuid, VM_REG_GUEST_XFLAGS, rflags, 8);
 	KASSERT(error == 0, ("%s: error %d updating rflags", __func__, error));
 
 	return (0);
@@ -2178,7 +2178,7 @@ decode_modrm(struct vie *vie, enum vm_cpu_mode cpu_mode)
 			 */
 
 			if (cpu_mode == CPU_MODE_64BIT)
-				vie->base_register = VM_REG_GUEST_RIP;
+				vie->base_register = VM_REG_GUEST_XIP;
 			else
 				vie->base_register = VM_REG_LAST;
 		}
@@ -2415,7 +2415,7 @@ verify_gla(struct vm *vm, int cpuid, uint64_t gla, struct vie *vie)
 		 * RIP-relative addressing starts from the following
 		 * instruction
 		 */
-		if (vie->base_register == VM_REG_GUEST_RIP)
+		if (vie->base_register == VM_REG_GUEST_XIP)
 			base += vie->num_valid;
 	}
 

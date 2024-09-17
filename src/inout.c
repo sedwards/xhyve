@@ -220,7 +220,7 @@ emulate_inout(int vcpu, struct vm_exit *vmexit, int strict)
 		assert(addrsize == 2 || addrsize == 4 || addrsize == 8);
 
 		/* Index register */
-		idxreg = in ? VM_REG_GUEST_RDI : VM_REG_GUEST_RSI;
+		idxreg = in ? VM_REG_GUEST_XDI : VM_REG_GUEST_XSI;
 		index = vis->index & vie_size2mask(addrsize);
 
 		/* Count register */
@@ -283,7 +283,7 @@ emulate_inout(int vcpu, struct vm_exit *vmexit, int strict)
 		 * prefix.
 		 */
 		if (rep) {
-			error = update_register(vcpu, VM_REG_GUEST_RCX, count, addrsize);
+			error = update_register(vcpu, VM_REG_GUEST_XCX, count, addrsize);
 			assert(error == 0);
 		}
 
@@ -299,7 +299,7 @@ emulate_inout(int vcpu, struct vm_exit *vmexit, int strict)
 		if (retval == 0 && in) {
 			eax &= ~vie_size2mask(bytes);
 			eax |= val & vie_size2mask(bytes);
-			error = xh_vm_set_register(vcpu, VM_REG_GUEST_RAX, eax);
+			error = xh_vm_set_register(vcpu, VM_REG_GUEST_XAX, eax);
 			assert(error == 0);
 		}
 	}

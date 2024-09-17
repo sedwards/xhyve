@@ -1,3 +1,4 @@
+#if 0
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
  *
@@ -31,16 +32,16 @@
 #include <sys/cdefs.h>
 #include <sys/types.h>
 #include <sys/systm.h>
-#include <sys/bus.h>
+//#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/rman.h>
+//#include <sys/rman.h>
 #include <sys/time.h>
-#include <sys/timeet.h>
-#include <sys/timetc.h>
+//#include <sys/timeet.h>
+//#include <sys/timetc.h>
 
-#include <machine/bus.h>
+//#include <machine/bus.h>
 #include <machine/machdep.h>
 #include <machine/vmm.h>
 #include <machine/armreg.h>
@@ -501,3 +502,5 @@ DEFINE_CLASS_0(vtimer, vtimer_driver, vtimer_methods,
     sizeof(struct vtimer_softc));
 
 DRIVER_MODULE(vtimer, generic_timer, vtimer_driver, 0, 0);
+
+#endif

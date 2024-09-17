@@ -1,3 +1,4 @@
+#if 0
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
  *
@@ -25,15 +26,19 @@
  * SUCH DAMAGE.
  */
 
+#include <stdbool.h>
+#include <stddef.h>
+
 #include <sys/cdefs.h>
 #include <sys/types.h>
 #include <sys/systm.h>
-#include <sys/bus.h>
+//#include <sys/bus.h>
 
 #include "vgic.h"
-#include "vgic_if.h"
+//#include "vgic_if.h"
 
-device_t vgic_dev;
+//extern const char *device;
+//device_t vgic_dev;
 
 bool
 vgic_present(void)
@@ -120,3 +125,5 @@ vgic_sync_hwstate(struct hypctx *hypctx)
 {
 	VGIC_SYNC_HWSTATE(vgic_dev, hypctx);
 }
+#endif
+

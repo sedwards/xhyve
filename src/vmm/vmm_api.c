@@ -768,7 +768,7 @@ xh_vm_rtc_gettime(time_t *secs)
 	return (0);
 }
 
-//#ifdef __x86_64__
+#ifdef __x86_64__
 int
 xh_vcpu_reset(int vcpu)
 {
@@ -778,8 +778,8 @@ xh_vcpu_reset(int vcpu)
 #define SET_REG(r, v) (error = xh_vm_set_register(vcpu, (r), (v)))
 #define SET_DESC(d, b, l, a) (error = xh_vm_set_desc(vcpu, (d), (b), (l), (a)))
 
-	if (SET_REG(VM_REG_GUEST_RFLAGS, 0x2) ||
-		SET_REG(VM_REG_GUEST_RIP, 0xfff0) ||
+	if (SET_REG(VM_REG_GUEST_XFLAGS, 0x2) ||
+		SET_REG(VM_REG_GUEST_XIP, 0xfff0) ||
 		SET_REG(VM_REG_GUEST_CR0, CR0_NE) ||
 		SET_REG(VM_REG_GUEST_CR3, 0) ||
 		SET_REG(VM_REG_GUEST_CR4, 0) ||
@@ -789,14 +789,14 @@ xh_vcpu_reset(int vcpu)
 		SET_REG(VM_REG_GUEST_ES, 0) ||
 		SET_REG(VM_REG_GUEST_FS, 0) ||
 		SET_REG(VM_REG_GUEST_GS, 0) ||
-		SET_REG(VM_REG_GUEST_RAX, 0) ||
-		SET_REG(VM_REG_GUEST_RBX, 0) ||
-		SET_REG(VM_REG_GUEST_RCX, 0) ||
-		SET_REG(VM_REG_GUEST_RDX, 0xf00) ||
-		SET_REG(VM_REG_GUEST_RSI, 0) ||
-		SET_REG(VM_REG_GUEST_RDI, 0) ||
-		SET_REG(VM_REG_GUEST_RBP, 0) ||
-		SET_REG(VM_REG_GUEST_RSP, 0) ||
+		SET_REG(VM_REG_GUEST_XAX, 0) ||
+		SET_REG(VM_REG_GUEST_XBX, 0) ||
+		SET_REG(VM_REG_GUEST_XCX, 0) ||
+		SET_REG(VM_REG_GUEST_XDX, 0xf00) ||
+		SET_REG(VM_REG_GUEST_XSI, 0) ||
+		SET_REG(VM_REG_GUEST_XDI, 0) ||
+		SET_REG(VM_REG_GUEST_XBP, 0) ||
+		SET_REG(VM_REG_GUEST_XSP, 0) ||
 		SET_REG(VM_REG_GUEST_TR, 0) ||
 		SET_REG(VM_REG_GUEST_LDTR, 0) ||
 		SET_DESC(VM_REG_GUEST_CS, 0xffff0000, 0xffff, 0x0093) ||
@@ -815,7 +815,7 @@ xh_vcpu_reset(int vcpu)
 
 	return (0);
 }
-//#endif
+#endif
 
 /*
 Changes:
@@ -827,7 +827,6 @@ Control Registers: Instead of CR0, CR3, CR4, AArch64 has SCTLR_ELx, TTBRx_ELx, e
 Since ARM doesn’t have the same descriptor tables (like GDT, IDT), those settings (SET_DESC) are removed. You would replace this with MMU configurations if needed.
 */
 
-#if 0
 int
 xh_vcpu_reset(int vcpu)
 {
@@ -879,6 +878,7 @@ xh_vcpu_reset(int vcpu)
     return 0;
 }
 
+#if 0
 int
 xh_vcpu_reset2(int vcpu)
 {
@@ -890,35 +890,35 @@ xh_vcpu_reset2(int vcpu)
     if (SET_REG(VM_REG_GUEST_PC, 0x0) ||         // Program Counter (PC)
         SET_REG(VM_REG_GUEST_PSTATE, 0x3C5) ||   // PSTATE
         SET_REG(VM_REG_GUEST_SP_EL1, 0) ||       // Stack Pointer for EL1 (SP_EL1)
-        SET_REG(VM_REG_GUEST_R0, 0) ||           // General-purpose registers R0 to R29
-        SET_REG(VM_REG_GUEST_R1, 0) ||
-        SET_REG(VM_REG_GUEST_R2, 0) ||
-        SET_REG(VM_REG_GUEST_R3, 0) ||
-        SET_REG(VM_REG_GUEST_R4, 0) ||
-        SET_REG(VM_REG_GUEST_R5, 0) ||
-        SET_REG(VM_REG_GUEST_R6, 0) ||
-        SET_REG(VM_REG_GUEST_R7, 0) ||
-        SET_REG(VM_REG_GUEST_R8, 0) ||
-        SET_REG(VM_REG_GUEST_R9, 0) ||
-        SET_REG(VM_REG_GUEST_R10, 0) ||
-        SET_REG(VM_REG_GUEST_R11, 0) ||
-        SET_REG(VM_REG_GUEST_R12, 0) ||
-        SET_REG(VM_REG_GUEST_R13, 0) ||
-        SET_REG(VM_REG_GUEST_R14, 0) ||
-        SET_REG(VM_REG_GUEST_R15, 0) ||
-        SET_REG(VM_REG_GUEST_R16, 0) ||
-        SET_REG(VM_REG_GUEST_R17, 0) ||
-        SET_REG(VM_REG_GUEST_R18, 0) ||
-        SET_REG(VM_REG_GUEST_R19, 0) ||
-        SET_REG(VM_REG_GUEST_R20, 0) ||
-        SET_REG(VM_REG_GUEST_R21, 0) ||
-        SET_REG(VM_REG_GUEST_R22, 0) ||
-        SET_REG(VM_REG_GUEST_R23, 0) ||
-        SET_REG(VM_REG_GUEST_R24, 0) ||
-        SET_REG(VM_REG_GUEST_R25, 0) ||
-        SET_REG(VM_REG_GUEST_R26, 0) ||
-        SET_REG(VM_REG_GUEST_R27, 0) ||
-        SET_REG(VM_REG_GUEST_R28, 0) ||
+        SET_REG(VM_REG_GUEST_X0, 0) ||           // General-purpose registers R0 to R29
+        SET_REG(VM_REG_GUEST_X1, 0) ||
+        SET_REG(VM_REG_GUEST_X2, 0) ||
+        SET_REG(VM_REG_GUEST_X3, 0) ||
+        SET_REG(VM_REG_GUEST_X4, 0) ||
+        SET_REG(VM_REG_GUEST_X5, 0) ||
+        SET_REG(VM_REG_GUEST_X6, 0) ||
+        SET_REG(VM_REG_GUEST_X7, 0) ||
+        SET_REG(VM_REG_GUEST_X8, 0) ||
+        SET_REG(VM_REG_GUEST_X9, 0) ||
+        SET_REG(VM_REG_GUEST_X10, 0) ||
+        SET_REG(VM_REG_GUEST_X11, 0) ||
+        SET_REG(VM_REG_GUEST_X12, 0) ||
+        SET_REG(VM_REG_GUEST_X13, 0) ||
+        SET_REG(VM_REG_GUEST_X14, 0) ||
+        SET_REG(VM_REG_GUEST_X15, 0) ||
+        SET_REG(VM_REG_GUEST_X16, 0) ||
+        SET_REG(VM_REG_GUEST_X17, 0) ||
+        SET_REG(VM_REG_GUEST_X18, 0) ||
+        SET_REG(VM_REG_GUEST_X19, 0) ||
+        SET_REG(VM_REG_GUEST_X20, 0) ||
+        SET_REG(VM_REG_GUEST_X21, 0) ||
+        SET_REG(VM_REG_GUEST_X22, 0) ||
+        SET_REG(VM_REG_GUEST_X23, 0) ||
+        SET_REG(VM_REG_GUEST_X24, 0) ||
+        SET_REG(VM_REG_GUEST_X25, 0) ||
+        SET_REG(VM_REG_GUEST_X26, 0) ||
+        SET_REG(VM_REG_GUEST_X27, 0) ||
+        SET_REG(VM_REG_GUEST_X28, 0) ||
         SET_REG(VM_REG_GUEST_FP, 0) ||           // Frame Pointer (R29)
         SET_REG(VM_REG_GUEST_LR, 0) ||           // Link Register (R30)
         SET_REG(VM_REG_GUEST_SPSR, 0)            // Saved Program Status Register (SPSR)

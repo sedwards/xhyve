@@ -1380,7 +1380,7 @@ inout_str_index(struct vmx *vmx, int vcpuid, int in)
 	int error;
 	enum vm_reg_name reg;
 
-	reg = in ? VM_REG_GUEST_RDI : VM_REG_GUEST_RSI;
+	reg = in ? VM_REG_GUEST_XDI : VM_REG_GUEST_XSI;
 	error = vmx_getreg(vmx, vcpuid, reg, &val);
 	KASSERT(error == 0, ("%s: vmx_getreg error %d", __func__, error));
 	return (val);
@@ -1393,7 +1393,7 @@ inout_str_count(struct vmx *vmx, int vcpuid, int rep)
 	int error;
 
 	if (rep) {
-		error = vmx_getreg(vmx, vcpuid, VM_REG_GUEST_RCX, &val);
+		error = vmx_getreg(vmx, vcpuid, VM_REG_GUEST_XCX, &val);
 		KASSERT(!error, ("%s: vmx_getreg error %d", __func__, error));
 	} else {
 		val = 1;

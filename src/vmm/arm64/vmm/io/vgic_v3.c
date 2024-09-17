@@ -1,3 +1,4 @@
+#if 0
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
  *
@@ -33,15 +34,16 @@
 #include <sys/errno.h>
 #include <sys/systm.h>
 #include <sys/bitstring.h>
-#include <sys/bus.h>
+//#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/rman.h>
+//#include <sys/rman.h>
 #include <sys/smp.h>
 
+#if 0
 #include <vm/vm.h>
 #include <vm/pmap.h>
 
@@ -68,6 +70,8 @@
 #include <arm64/vmm/hyp.h>
 #include <arm64/vmm/mmu.h>
 #include <arm64/vmm/arm64.h>
+
+#endif
 
 #include "vgic.h"
 #include "vgic_v3.h"
@@ -2346,3 +2350,6 @@ static device_method_t vgic_v3_methods[] = {
 DEFINE_CLASS_0(vgic, vgic_v3_driver, vgic_v3_methods, 0);
 
 DRIVER_MODULE(vgic_v3, gic, vgic_v3_driver, 0, 0);
+
+#endif
+

@@ -168,7 +168,7 @@ fbsd_set_regs_i386(uint32_t eip, uint32_t gdt_base, uint32_t esp)
 	gdt[3].sd_lobase = tss_base;	
 
 	rflags = 0x2;
-	error = xh_vm_set_register(BSP, VM_REG_GUEST_RFLAGS, rflags);
+	error = xh_vm_set_register(BSP, VM_REG_GUEST_XFLAGS, rflags);
 	if (error)
 		goto done;
 
@@ -252,10 +252,10 @@ fbsd_set_regs_i386(uint32_t eip, uint32_t gdt_base, uint32_t esp)
 		goto done;
 
 	/* entry point */
-	if ((error = xh_vm_set_register(BSP, VM_REG_GUEST_RIP, eip)) != 0)
+	if ((error = xh_vm_set_register(BSP, VM_REG_GUEST_XIP, eip)) != 0)
 		goto done;
 
-	if ((error = xh_vm_set_register(BSP, VM_REG_GUEST_RSP, esp)) != 0)
+	if ((error = xh_vm_set_register(BSP, VM_REG_GUEST_XSP, esp)) != 0)
 		goto done;
 
 	error = 0;
@@ -284,7 +284,7 @@ fbsd_set_regs(uint64_t rip, uint64_t cr3, uint64_t gdt_base, uint64_t rsp)
 		goto done;
 
 	rflags = 0x2;
-	error = xh_vm_set_register(BSP, VM_REG_GUEST_RFLAGS, rflags);
+	error = xh_vm_set_register(BSP, VM_REG_GUEST_XFLAGS, rflags);
 	if (error)
 		goto done;
 
@@ -370,7 +370,7 @@ fbsd_set_regs(uint64_t rip, uint64_t cr3, uint64_t gdt_base, uint64_t rsp)
 		goto done;
 
 	/* entry point */
-	if ((error = xh_vm_set_register(BSP, VM_REG_GUEST_RIP, rip)) != 0)
+	if ((error = xh_vm_set_register(BSP, VM_REG_GUEST_XIP, rip)) != 0)
 		goto done;
 
 	/* page table base */
@@ -383,7 +383,7 @@ fbsd_set_regs(uint64_t rip, uint64_t cr3, uint64_t gdt_base, uint64_t rsp)
 	if (error != 0)
 		goto done;
 
-	if ((error = xh_vm_set_register(BSP, VM_REG_GUEST_RSP, rsp)) != 0)
+	if ((error = xh_vm_set_register(BSP, VM_REG_GUEST_XSP, rsp)) != 0)
 		goto done;
 
 	error = 0;
@@ -663,7 +663,7 @@ cb_setreg(UNUSED void *arg, int r, uint64_t v)
 
 	switch (r) {
 	case 4:
-		vmreg = VM_REG_GUEST_RSP;
+		vmreg = VM_REG_GUEST_XSP;
 		vcpu_rsp = v;
 		break;
 	default:
