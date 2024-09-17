@@ -1,3 +1,4 @@
+#if 0
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
  *
@@ -100,3 +101,5 @@ vmm_emulate_register(struct vcpu *vcpu, struct vre *vre, reg_read_t regread,
 out:
 	return (error);
 }
+#endif
+

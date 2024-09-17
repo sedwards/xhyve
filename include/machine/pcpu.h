@@ -159,7 +159,7 @@ struct pcpu {
 	STAILQ_ENTRY(pcpu) pc_allcpu;
 	struct lock_list_entry *pc_spinlocks;
 	struct vmmeter	pc_cnt;			/* VM stats counters */
-	long		pc_cp_time[CPUSTATES];	/* statclock ticks */
+	long		pc_cp_time[5];	/* statclock ticks */
 	struct device	*pc_device;
 	void		*pc_netisr;		/* netisr SWI cookie */
 	int		pc_dnweight;		/* vm_page_dontneed() */

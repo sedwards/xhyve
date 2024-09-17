@@ -1,3 +1,4 @@
+#if 0
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
  *
@@ -26,24 +27,27 @@
  * SUCH DAMAGE.
  */
 
+#define vm_ooffset_t  vm_offset_t
+
+#include <stdbool.h>
+
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/cpuset.h>
 #include <sys/kernel.h>
-//#include <sys/linker.h>
+#include <sys/linker.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
-//#include <sys/module.h>
-//#include <sys/mutex.h>
-//#include <sys/pcpu.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/pcpu.h>
 #include <sys/proc.h>
 #include <sys/queue.h>
-//#include <sys/rwlock.h>
-//#include <sys/sched.h>
-//#include <sys/smp.h>
+#include <sys/rwlock.h>
+#include <sys/sched.h>
+#include <sys/smp.h>
 #include <sys/sysctl.h>
 
-#if 0
 #include <vm/vm.h>
 #include <vm/vm_object.h>
 #include <vm/vm_page.h>
@@ -51,17 +55,16 @@
 #include <vm/vm_map.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_param.h>
-#endif
 
 #include <machine/armreg.h>
 #include <machine/cpu.h>
-//#include <machine/fpu.h>
+#include <machine/fpu.h>
 #include <machine/machdep.h>
 //#include <machine/pcb.h>
 //#include <machine/smp.h>
-//#include <machine/vm.h>
-//#include <machine/vmparam.h>
-//#include <machine/vmm.h>
+#include <machine/vm.h>
+#include <machine/vmparam.h>
+#include <machine/vmm.h>
 //#include <machine/vmm_dev.h>
 //#include <machine/vmm_instruction_emul.h>
 
@@ -1803,3 +1806,5 @@ restart:
 
 	return (error);
 }
+#endif
+

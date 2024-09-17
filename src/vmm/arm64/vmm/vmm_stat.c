@@ -1,3 +1,4 @@
+#if 0
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
  *
@@ -27,6 +28,10 @@
  */
 
 #include <sys/cdefs.h>
+
+#include <errno.h>
+#include <vm/vm_page.h>
+#include <sys/malloc.h>
 
 #include <sys/param.h>
 #include <sys/kernel.h>
@@ -163,3 +168,5 @@ VMM_STAT(VMEXIT_IRQ, "number of vmexits for an irq");
 VMM_STAT(VMEXIT_FIQ, "number of vmexits for an interrupt");
 VMM_STAT(VMEXIT_UNHANDLED_EL2, "number of vmexits for an unhandled EL2 exception");
 VMM_STAT(VMEXIT_UNHANDLED, "number of vmexits for an unhandled exception");
+
+#endif

@@ -1,3 +1,5 @@
+
+#if 0
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
  *
@@ -27,6 +29,8 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
+
+#include <stdbool.h>
 
 #include <sys/cdefs.h>
 
@@ -428,3 +432,6 @@ vmmpmap_remove(vm_offset_t va, vm_size_t size, bool invalidate)
 		free(l3_list, M_TEMP);
 	}
 }
+
+#endif
+

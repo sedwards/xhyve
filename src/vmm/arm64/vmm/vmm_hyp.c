@@ -1,3 +1,4 @@
+#if 0
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
  *
@@ -27,6 +28,8 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
+
+#include <stdbool.h>
 
 #include <sys/cdefs.h>
 #include <sys/types.h>
@@ -733,3 +736,5 @@ vmm_hyp_enter(uint64_t handle, uint64_t x1, uint64_t x2, uint64_t x3,
 
 	return (0);
 }
+#endif
+

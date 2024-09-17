@@ -29,10 +29,10 @@
 
 #include <sys/param.h>
 #include <sys/cpuset.h>
-#include <vm/vm.h>
+// #include <vm/vm.h> ? machine/vm.h
 #include <vm/pmap.h>
 
-#include "pte.h"
+//#include "pte.h"
 #include "pmap.h"
 
 struct vcpu;

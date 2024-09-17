@@ -56,10 +56,11 @@ struct mtx {
  * additional padding for the struct to keep a correct alignment for
  * the mutex.
  */
+#if 0
 struct mtx_padalign {
 	struct lock_object	lock_object;	/* Common lock properties. */
 	volatile uintptr_t	mtx_lock;	/* Owner and flags. */
 } __aligned(CACHE_LINE_SIZE);
-
+#endif
 #endif /* !_SYS__MUTEX_H_ */
 

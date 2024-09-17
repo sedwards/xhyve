@@ -1,3 +1,4 @@
+#if 0
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
  *
@@ -1335,3 +1336,5 @@ vmmops_setcap(void *vcpui, int num, int val)
 
 	return (ENOENT);
 }
+#endif
+

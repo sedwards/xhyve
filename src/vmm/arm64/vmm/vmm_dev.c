@@ -1,3 +1,4 @@
+#if 0
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
  *
@@ -36,6 +37,9 @@
 #include <sys/malloc.h>
 #include <sys/conf.h>
 #include <sys/sysctl.h>
+
+typedef vm_offset_t vm_ooffset_t;
+
 #include <sys/libkern.h>
 #include <sys/ioccom.h>
 #include <sys/mman.h>
@@ -1052,3 +1056,4 @@ devmem_destroy(void *arg)
 	dsc->cdev = NULL;
 	dsc->sc = NULL;
 }
+#endif

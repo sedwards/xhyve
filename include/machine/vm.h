@@ -1,7 +1,7 @@
 /*-
- * SPDX-License-Identifier: BSD-2-Clause
- *
- * Copyright (c) 2023 Arm Ltd
+ * Copyright (c) 2009 Advanced Computing Technologies LLC
+ * Written by: John H. Baldwin <jhb@FreeBSD.org>
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -15,7 +15,7 @@
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
  * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
@@ -23,30 +23,24 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
+ *
+ * $FreeBSD: release/9.0.0/sys/amd64/include/vm.h 195649 2009-07-12 23:31:20Z alc $
  */
 
-#ifndef _VGIC_H_
-#define	_VGIC_H_
+#ifndef _MACHINE_VM_H_
+#define	_MACHINE_VM_H_
 
-struct hyp;
-struct hypctx;
-struct vm_vgic_descr;
+#include <machine/specialreg.h>
 
-extern device_t vgic_dev;
+/* Memory attributes. */
+#define	VM_MEMATTR_UNCACHEABLE		((vm_memattr_t)PAT_UNCACHEABLE)
+#define	VM_MEMATTR_WRITE_COMBINING	((vm_memattr_t)PAT_WRITE_COMBINING)
+#define	VM_MEMATTR_WRITE_THROUGH	((vm_memattr_t)PAT_WRITE_THROUGH)
+#define	VM_MEMATTR_WRITE_PROTECTED	((vm_memattr_t)PAT_WRITE_PROTECTED)
+#define	VM_MEMATTR_WRITE_BACK		((vm_memattr_t)PAT_WRITE_BACK)
+#define	VM_MEMATTR_UNCACHED		((vm_memattr_t)PAT_UNCACHED)
 
-bool vgic_present(void);
-void vgic_init(void);
-int vgic_attach_to_vm(struct hyp *hyp, struct vm_vgic_descr *descr);
-void vgic_detach_from_vm(struct hyp *hyp);
-void vgic_vminit(struct hyp *hyp);
-void vgic_cpuinit(struct hypctx *hypctx);
-void vgic_cpucleanup(struct hypctx *hypctx);
-void vgic_vmcleanup(struct hyp *hyp);
-int vgic_max_cpu_count(struct hyp *hyp);
-bool vgic_has_pending_irq(struct hypctx *hypctx);
-int vgic_inject_irq(struct hyp *hyp, int vcpuid, uint32_t irqid, bool level);
-int vgic_inject_msi(struct hyp *hyp, uint64_t msg, uint64_t addr);
-void vgic_flush_hwstate(struct hypctx *hypctx);
-void vgic_sync_hwstate(struct hypctx *hypctx);
+#define	VM_MEMATTR_DEFAULT		VM_MEMATTR_WRITE_BACK
 
-#endif /* _VGIC_H_ */
+#endif /* !_MACHINE_VM_H_ */
+

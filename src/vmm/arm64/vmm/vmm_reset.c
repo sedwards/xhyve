@@ -1,3 +1,4 @@
+#if 0
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
  *
@@ -25,6 +26,8 @@
  * SUCH DAMAGE.
  */
 
+#include <stdbool.h>
+
 #include <sys/cdefs.h>
 #include <sys/types.h>
 #include <sys/systm.h>
@@ -33,7 +36,7 @@
 
 #include <machine/armreg.h>
 #include <machine/cpu.h>
-#include <machine/hypervisor.h>
+//#include <machine/hypervisor.h>
 
 #include "arm64.h"
 #include "reset.h"
@@ -175,3 +178,5 @@ reset_vm_el2_regs(void *vcpu)
 	/* Use the EL1 stack when taking exceptions to EL1 */
 	el2ctx->tf.tf_spsr |= PSR_M_EL1h;
 }
+#endif
+
