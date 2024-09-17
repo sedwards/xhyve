@@ -32,6 +32,16 @@ VMM_SRC := \
 	src/vmm/io/vpmtmr.c \
 	src/vmm/io/vrtc.c
 
+ARM_64_SRC := \
+	src/vmm/arm64/vmm/vmm.c	\
+	src/vmm/arm64/vmm/vmm_arm64.c \
+	src/vmm/arm64/vmm/vmm_dev.c \
+	src/vmm/arm64/vmm/vmm_hyp.c \
+	src/vmm/arm64/vmm/vmm_instruction_emul.c \
+	src/vmm/arm64/vmm/vmm_mmu.c \
+	src/vmm/arm64/vmm/vmm_reset.c \
+	src/vmm/arm64/vmm/vmm_stat.c
+
 XHYVE_SRC := \
 	src/acpitbl.c \
 	src/atkbdc.c \
@@ -78,15 +88,16 @@ FIRMWARE_SRC := \
 	src/firmware/fbsd.c
 
 SRC := \
+	$(ARM_64_SRC) \
 	$(VMM_SRC) \
 	$(XHYVE_SRC) \
 	$(FIRMWARE_SRC)
 
 OBJ := $(SRC:src/%.c=build/%.o)
 DEP := $(OBJ:%.o=%.d)
-INC := -Iinclude
+INC := -Iinclude -Isrc/vmm/arm64/include/sys/
 
-CFLAGS += -DVERSION=\"$(GIT_VERSION)\" -D__ARM64__
+CFLAGS += -DVERSION=\"$(GIT_VERSION)\" -D__ARM64__ -D__ARM64 -D__arm64 -D__AARCH64__
 
 TARGET = build/xhyve
 
