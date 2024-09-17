@@ -220,12 +220,13 @@ static const struct vie_op one_byte_opcodes[256] = {
 
 #define	GB				(1024 * 1024 * 1024)
 
+#if 0
 static enum vm_reg_name gpr_map[16] = {
 	VM_REG_GUEST_XAX,
 	VM_REG_GUEST_XCX,
 	VM_REG_GUEST_XDX,
 	VM_REG_GUEST_XBX,
-	VM_REG_GUEST_XSP,
+	VM_REG_GUEST_SP,
 	VM_REG_GUEST_XBP,
 	VM_REG_GUEST_XSI,
 	VM_REG_GUEST_XDI,
@@ -238,6 +239,27 @@ static enum vm_reg_name gpr_map[16] = {
 	VM_REG_GUEST_X14,
 	VM_REG_GUEST_X15
 };
+#endif
+
+static enum vm_reg_name gpr_map[16] = {
+        VM_REG_GUEST_X0,   // ARM64 X0
+        VM_REG_GUEST_X1,   // ARM64 X1
+        VM_REG_GUEST_X2,   // ARM64 X2
+        VM_REG_GUEST_X3,   // ARM64 X3
+        VM_REG_GUEST_SP,   // ARM64 Stack Pointer (SP)
+        VM_REG_GUEST_X5,   // ARM64 X5
+        VM_REG_GUEST_X6,   // ARM64 X6
+        VM_REG_GUEST_X7,   // ARM64 X7
+        VM_REG_GUEST_X8,   // ARM64 X8
+        VM_REG_GUEST_X9,   // ARM64 X9
+        VM_REG_GUEST_X10,  // ARM64 X10
+        VM_REG_GUEST_X11,  // ARM64 X11
+        VM_REG_GUEST_X12,  // ARM64 X12
+        VM_REG_GUEST_X13,  // ARM64 X13
+        VM_REG_GUEST_X14,  // ARM64 X14
+        VM_REG_GUEST_X15   // ARM64 X15
+};
+
 
 static uint64_t size2mask[] = {
 	[1] = 0xff,
@@ -430,6 +452,7 @@ getandflags(int opsize, uint64_t x, uint64_t y)
 		return (getandflags64(x, y));
 }
 
+#if 0
 static int
 emulate_mov(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
 	    mem_region_read_t memread, mem_region_write_t memwrite, void *arg)
@@ -630,63 +653,69 @@ emulate_movx(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
 	}
 	return (error);
 }
+#endif
 
-/*
- * Helper function to calculate and validate a linear address.
- */
 static int
 get_gla(void *vm, int vcpuid, UNUSED struct vie *vie,
-	struct vm_guest_paging *paging, int opsize, int addrsize, int prot,
-	enum vm_reg_name seg, enum vm_reg_name gpr, uint64_t *gla, int *fault)
+        struct vm_guest_paging *paging, int opsize, int addrsize, int prot,
+        enum vm_reg_name seg, enum vm_reg_name gpr, uint64_t *gla, int *fault)
 {
-	struct seg_desc desc;
-	uint64_t cr0, val, rflags;
-	int error;
+    struct seg_desc desc;
+    uint64_t cr0, val, rflags;
+    int error;
 
-	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_CR0, &cr0);
-	KASSERT(error == 0, ("%s: error %d getting cr0", __func__, error));
+    #ifdef __x86_64__
+    error = vie_read_register(vm, vcpuid, VM_REG_GUEST_CR0, &cr0);
+    KASSERT(error == 0, ("%s: error %d getting cr0", __func__, error));
 
-	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_XFLAGS, &rflags);
-	KASSERT(error == 0, ("%s: error %d getting rflags", __func__, error));
+    error = vie_read_register(vm, vcpuid, VM_REG_GUEST_XFLAGS, &rflags);
+    KASSERT(error == 0, ("%s: error %d getting rflags", __func__, error));
+    
+    error = vm_get_seg_desc(vm, vcpuid, (int) seg, &desc);
+    KASSERT(error == 0, ("%s: error %d getting segment descriptor %d", __func__, error, seg));
+    #endif
 
-	error = vm_get_seg_desc(vm, vcpuid, (int) seg, &desc);
-	KASSERT(error == 0, ("%s: error %d getting segment descriptor %d",
-	    __func__, error, seg));
+    error = vie_read_register(vm, vcpuid, gpr, &val);
+    KASSERT(error == 0, ("%s: error %d getting register %d", __func__, error, gpr));
 
-	error = vie_read_register(vm, vcpuid, gpr, &val);
-	KASSERT(error == 0, ("%s: error %d getting register %d", __func__,
-	    error, gpr));
+    if (vie_calculate_gla(paging->cpu_mode, seg, &desc, val, opsize, addrsize, prot, gla)) {
+        #ifdef __x86_64__
+        if (seg == VM_REG_GUEST_SS)
+            vm_inject_ss(vm, vcpuid, 0);
+        else
+            vm_inject_gp(vm, vcpuid);
+        #endif
+        goto guest_fault;
+    }
 
-	if (vie_calculate_gla(paging->cpu_mode, seg, &desc, val, opsize,
-	    addrsize, prot, gla)) {
-		if (seg == VM_REG_GUEST_SS)
-			vm_inject_ss(vm, vcpuid, 0);
-		else
-			vm_inject_gp(vm, vcpuid);
-		goto guest_fault;
-	}
+    if (vie_canonical_check(paging->cpu_mode, *gla)) {
+        #ifdef __x86_64__
+        if (seg == VM_REG_GUEST_SS)
+            vm_inject_ss(vm, vcpuid, 0);
+        else
+            vm_inject_gp(vm, vcpuid);
+        #endif
+        goto guest_fault;
+    }
 
-	if (vie_canonical_check(paging->cpu_mode, *gla)) {
-		if (seg == VM_REG_GUEST_SS)
-			vm_inject_ss(vm, vcpuid, 0);
-		else
-			vm_inject_gp(vm, vcpuid);
-		goto guest_fault;
-	}
+    #ifdef __x86_64__
+    if (vie_alignment_check(paging->cpl, opsize, cr0, rflags, *gla)) {
+        vm_inject_ac(vm, vcpuid, 0);
+        goto guest_fault;
+    }
+    #endif
 
-	if (vie_alignment_check(paging->cpl, opsize, cr0, rflags, *gla)) {
-		vm_inject_ac(vm, vcpuid, 0);
-		goto guest_fault;
-	}
-
-	*fault = 0;
-	return (0);
+    *fault = 0;
+    return (0);
 
 guest_fault:
-	*fault = 1;
-	return (0);
+    *fault = 1;
+    return (0);
 }
 
+
+
+#if 0
 static int
 emulate_movs(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
     struct vm_guest_paging *paging, mem_region_read_t memread,
@@ -1081,7 +1110,7 @@ emulate_or(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
 	error = vie_update_register(vm, vcpuid, VM_REG_GUEST_XFLAGS, rflags, 8);
 	return (error);
 }
-
+#endif
 static int
 emulate_cmp(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
 	    mem_region_read_t memread, UNUSED mem_region_write_t memwrite,
