@@ -98,6 +98,8 @@ typedef struct vm_map *vm_map_t;
 struct vm_object;
 typedef struct vm_object *vm_object_t;
 
+struct vm_offset;
+
 #ifndef _KERNEL
 /*
  * This is defined in <sys/types.h> for the kernel so that non-vm kernel
@@ -124,6 +126,9 @@ typedef struct vm_page *vm_page_t;
 
 struct vm_reserv;
 typedef struct vm_reserv *vm_reserv_t;
+
+typedef unsigned long vm_offset_t;
+typedef vm_offset_t vm_ooffset_t;
 
 /*
  * Information passed from the machine-independant VM initialization code

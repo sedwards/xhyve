@@ -28,6 +28,11 @@
  */
 
 #define vm_ooffset_t  vm_offset_t
+typedef uint64_t vm_pindex_t;
+
+typedef uint64_t vm_paddr_t;
+
+#define CACHE_LINE_SIZE 64
 
 #include <stdbool.h>
 
@@ -1807,4 +1812,3 @@ restart:
 	return (error);
 }
 #endif
-

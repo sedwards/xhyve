@@ -1,0 +1,14 @@
+Here’s how you might address the conflict:
+
+Consistent Alignment: Ensure that the alignment specified in both places is the same. For ARM64, using a 64-byte alignment is standard:
+
+#define CACHE_LINE_SIZE 64
+
+} __aligned(CACHE_LINE_SIZE);
+Check for __aligned Definition: Make sure that the __aligned macro or attribute is defined properly in your headers. It should be consistent with the platform-specific alignment requirements. If __aligned is a macro or attribute, ensure it is defined correctly for ARM64:
+
+
+#define __aligned(x) __attribute__((aligned(x)))
+
+Check Header Inclusions: Verify that there are no conflicting definitions of __aligned in different headers. If necessary, modify or remove the conflicting definitions to ensure consistency across your codebase.
+
