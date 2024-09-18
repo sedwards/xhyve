@@ -371,7 +371,7 @@ vcpu_thread(void *param)
         }
 	} else {
 		rip_entry = vmexit[vcpu].rip;
-		spinup_ap_realmode(vcpu, &rip_entry);
+		//spinup_ap_realmode(vcpu, &rip_entry);
 	}
 
 	vmexit[vcpu].rip = rip_entry;

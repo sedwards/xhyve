@@ -231,12 +231,12 @@ emulate_inout(int vcpu, struct vm_exit *vmexit, int strict)
 		iterations = min(count, 16);
 		while (iterations > 0) {
 			assert(retval == 0);
-			if (vie_calculate_gla(vis->paging.cpu_mode,
-			    vis->seg_name, &vis->seg_desc, index, bytes,
-			    addrsize, prot, &gla)) {
-				vm_inject_gp(vcpu);
-				break;
-			}
+			//if (vie_calculate_gla(vis->paging.cpu_mode,
+			//    vis->seg_name, &vis->seg_desc, index, bytes,
+			//    addrsize, prot, &gla)) {
+			//	vm_inject_gp(vcpu);
+			//	break;
+			//}
 
 			error = xh_vm_copy_setup(vcpu, &vis->paging, gla,
 			    ((size_t) bytes), prot, iov, nitems(iov), &fault);

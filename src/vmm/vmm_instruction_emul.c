@@ -678,6 +678,7 @@ get_gla(void *vm, int vcpuid, UNUSED struct vie *vie,
     error = vie_read_register(vm, vcpuid, gpr, &val);
     KASSERT(error == 0, ("%s: error %d getting register %d", __func__, error, gpr));
 
+#ifdef __x86_64__
     if (vie_calculate_gla(paging->cpu_mode, seg, &desc, val, opsize, addrsize, prot, gla)) {
         #ifdef __x86_64__
         if (seg == VM_REG_GUEST_SS)
@@ -687,6 +688,7 @@ get_gla(void *vm, int vcpuid, UNUSED struct vie *vie,
         #endif
         goto guest_fault;
     }
+#endif
 
     if (vie_canonical_check(paging->cpu_mode, *gla)) {
         #ifdef __x86_64__
@@ -1521,6 +1523,7 @@ vmm_emulate_instruction(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
 		return (EINVAL);
 
 	switch (vie->op.op_type) {
+#if 0
 	case VIE_OP_TYPE_GROUP1:
 		error = emulate_group1(vm, vcpuid, gpa, vie, paging, memread,
 		    memwrite, memarg);
@@ -1574,6 +1577,7 @@ vmm_emulate_instruction(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
 		error = emulate_test(vm, vcpuid, gpa, vie,
 		    memread, memwrite, memarg);
 		break;
+#endif
 	default:
 		error = EINVAL;
 		break;
@@ -1622,7 +1626,6 @@ vie_size2mask(int size)
 	return (size2mask[size]);
 }
 
-#if 0
 int
 vie_calculate_gla(enum vm_cpu_mode cpu_mode, enum vm_reg_name seg,
     struct seg_desc *desc, uint64_t offset, int length, int addrsize,
@@ -1631,88 +1634,13 @@ vie_calculate_gla(enum vm_cpu_mode cpu_mode, enum vm_reg_name seg,
 	uint64_t firstoff, low_limit, high_limit, segbase;
 	int glasize, type;
 
-	KASSERT(seg >= VM_REG_GUEST_ES && seg <= VM_REG_GUEST_GS,
-	    ("%s: invalid segment %d", __func__, seg));
-	KASSERT(length == 1 || length == 2 || length == 4 || length == 8,
-	    ("%s: invalid operand size %d", __func__, length));
-	KASSERT((prot & ~(XHYVE_PROT_READ | XHYVE_PROT_WRITE)) == 0,
-	    ("%s: invalid prot %#x", __func__, prot));
-
 	firstoff = offset;
 	if (cpu_mode == CPU_MODE_64BIT) {
 		KASSERT(addrsize == 4 || addrsize == 8, ("%s: invalid address "
 		    "size %d for cpu_mode %d", __func__, addrsize, cpu_mode));
 		glasize = 8;
-	} else {
-		KASSERT(addrsize == 2 || addrsize == 4, ("%s: invalid address "
-		    "size %d for cpu mode %d", __func__, addrsize, cpu_mode));
-		glasize = 4;
-		/*
-		 * If the segment selector is loaded with a NULL selector
-		 * then the descriptor is unusable and attempting to use
-		 * it results in a #GP(0).
-		 */
-		if (SEG_DESC_UNUSABLE(desc->access))
-			return (-1);
-
-		/* 
-		 * The processor generates a #NP exception when a segment
-		 * register is loaded with a selector that points to a
-		 * descriptor that is not present. If this was the case then
-		 * it would have been checked before the VM-exit.
-		 */
-		KASSERT(SEG_DESC_PRESENT(desc->access),
-		    ("segment %d not present: %#x", seg, desc->access));
-
-		/*
-		 * The descriptor type must indicate a code/data segment.
-		 */
-		type = SEG_DESC_TYPE(desc->access);
-		KASSERT(type >= 16 && type <= 31, ("segment %d has invalid "
-		    "descriptor type %#x", seg, type));
-
-		if (prot & XHYVE_PROT_READ) {
-			/* #GP on a read access to a exec-only code segment */
-			if ((type & 0xA) == 0x8)
-				return (-1);
-		}
-
-		if (prot & XHYVE_PROT_WRITE) {
-			/*
-			 * #GP on a write access to a code segment or a
-			 * read-only data segment.
-			 */
-			if (type & 0x8)			/* code segment */
-				return (-1);
-
-			if ((type & 0xA) == 0)		/* read-only data seg */
-				return (-1);
-		}
-
-		/*
-		 * 'desc->limit' is fully expanded taking granularity into
-		 * account.
-		 */
-		if ((type & 0xC) == 0x4) {
-			/* expand-down data segment */
-			low_limit = desc->limit + 1;
-			high_limit = SEG_DESC_DEF32(desc->access) ?
-			    0xffffffff : 0xffff;
-		} else {
-			/* code segment or expand-up data segment */
-			low_limit = 0;
-			high_limit = desc->limit;
-		}
-
-		while (length > 0) {
-			offset &= vie_size2mask(addrsize);
-			if (offset < low_limit || offset > high_limit)
-				return (-1);
-			offset++;
-			length--;
-		}
 	}
-
+#if 0
 	/*
 	 * In 64-bit mode all segments except %fs and %gs have a segment
 	 * base address of 0.
@@ -1723,6 +1651,8 @@ vie_calculate_gla(enum vm_cpu_mode cpu_mode, enum vm_reg_name seg,
 	} else {
 		segbase = desc->base;
 	}
+#endif
+	//	segbase = 0;
 
 	/*
 	 * Truncate 'firstoff' to the effective address size before adding
@@ -1732,7 +1662,6 @@ vie_calculate_gla(enum vm_cpu_mode cpu_mode, enum vm_reg_name seg,
 	*gla = (segbase + firstoff) & vie_size2mask(glasize);
 	return (0);
 }
-#endif
 
 void
 vie_init(struct vie *vie, const char *inst_bytes, int inst_length)
@@ -1771,11 +1700,12 @@ pf_error_code(int usermode, int prot, int rsvd, uint64_t pte)
 	return (error_code);
 }
 
-#if 0
 int
 vm_gla2gpa(struct vm *vm, int vcpuid, struct vm_guest_paging *paging,
     uint64_t gla, int prot, uint64_t *gpa, int *guest_fault)
 {
+  return 0;
+#if 0
 	int nlevels, pfcode, ptpshift, ptpindex, retval, usermode, writable;
 	u_int retries;
 	uint64_t *ptpbase, ptpphys, pte, pgsize;
@@ -1962,8 +1892,8 @@ error:
 fault:
 	*guest_fault = 1;
 	goto done;
-}
 #endif
+}
 
 int
 vmm_fetch_instruction(struct vm *vm, int vcpuid, struct vm_guest_paging *paging,
@@ -2005,36 +1935,34 @@ vie_advance(struct vie *vie)
 	vie->num_processed++;
 }
 
-#if 0
 static bool
 segment_override(uint8_t x, int *seg)
 {
 
 	switch (x) {
 	case 0x2E:
-		*seg = VM_REG_GUEST_CS;
+		*seg = VM_REG_GUEST_X20;
 		break;
 	case 0x36:
-		*seg = VM_REG_GUEST_SS;
+		*seg = VM_REG_GUEST_X21;
 		break;
 	case 0x3E:
-		*seg = VM_REG_GUEST_DS;
+		*seg = VM_REG_GUEST_X22;
 		break;
 	case 0x26:
-		*seg = VM_REG_GUEST_ES;
+		*seg = VM_REG_GUEST_X23;
 		break;
 	case 0x64:
-		*seg = VM_REG_GUEST_FS;
+		*seg = VM_REG_GUEST_X24;
 		break;
 	case 0x65:
-		*seg = VM_REG_GUEST_GS;
+		*seg = VM_REG_GUEST_X25;
 		break;
 	default:
 		return (false);
 	}
 	return (true);
 }
-#endif
 
 static int
 decode_prefixes(struct vie *vie, enum vm_cpu_mode cpu_mode, int cs_d)
@@ -2510,8 +2438,9 @@ vmm_decode_instruction(struct vm *vm, int cpuid, uint64_t gla,
 		return (-1);
 
 	if ((vie->op.op_flags & VIE_OP_F_NO_GLA_VERIFICATION) == 0) {
-		if (verify_gla(vm, cpuid, gla, vie))
-			return (-1);
+		//if (verify_gla(vm, cpuid, gla, vie))
+		//	return (-1);
+		printf("vmm_decode_instruction - verify_gla - whatever the hell that means\n");
 	}
 
 	vie->decoded = 1;	/* success */
