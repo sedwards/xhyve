@@ -720,7 +720,8 @@ vcpu_loop(int vcpu, uint64_t startrip)
 	error = xh_vm_active_cpus(&active_cpus);
 	assert(CPU_ISSET(((unsigned) vcpu), &active_cpus));
 
-	error = xh_vm_set_register(vcpu, VM_REG_GUEST_XIP, startrip);
+	//error = xh_vm_set_register(vcpu, VM_REG_GUEST_XIP, startrip);
+	error = xh_vm_set_register(vcpu, VM_REG_GUEST_X11, startrip);
 	assert(error == 0);
 
 	while (1) {

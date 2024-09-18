@@ -270,6 +270,7 @@ done:
 static int
 fbsd_set_regs(uint64_t rip, uint64_t cr3, uint64_t gdt_base, uint64_t rsp)
 {
+#if 0
 	int error;
 	uint64_t cr0, cr4, efer, rflags, desc_base;
 	uint32_t desc_access, desc_limit;
@@ -393,6 +394,8 @@ fbsd_set_regs(uint64_t rip, uint64_t cr3, uint64_t gdt_base, uint64_t rsp)
 	error = 0;
 done:
 	return (error);
+#endif
+	return 0;
 }
 
 /*
@@ -667,7 +670,7 @@ cb_setreg(UNUSED void *arg, int r, uint64_t v)
 
 	switch (r) {
 	case 4:
-		vmreg = VM_REG_GUEST_XSP;
+		vmreg = VM_REG_GUEST_X10;
 		vcpu_rsp = v;
 		break;
 	default:
@@ -695,7 +698,8 @@ cb_setmsr(UNUSED void *arg, u_int r, uint64_t v)
 
 	switch (r) {
 	case MSR_EFER:
-		vmreg = VM_REG_GUEST_EFER;
+		//vmreg = VM_REG_GUEST_EFER;
+		vmreg = VM_REG_GUEST_SPSR;
 		break;
 	default:
 		break;
@@ -722,14 +726,14 @@ cb_setcr(UNUSED void *arg, int r, uint64_t v)
 
 	switch (r) {
 	case 0:
-		vmreg = VM_REG_GUEST_CR0;
+		vmreg = VM_REG_GUEST_X12;
 		break;
 	case 3:
-		vmreg = VM_REG_GUEST_CR3;
+		vmreg = VM_REG_GUEST_X13;
 		vcpu_cr3 = v;
 		break;
 	case 4:
-		vmreg = VM_REG_GUEST_CR4;
+		vmreg = VM_REG_GUEST_X14;
 		break;
 	default:
 		break;
@@ -752,7 +756,7 @@ cb_setgdt(UNUSED void *arg, uint64_t base, size_t size)
 {
 	int error;
 
-	error = xh_vm_set_desc(BSP, VM_REG_GUEST_GDTR, base,
+	error = xh_vm_set_desc(BSP, VM_REG_GUEST_SPSR, base,
 		((uint32_t) (size - 1)), 0);
 
 	if (error != 0) {

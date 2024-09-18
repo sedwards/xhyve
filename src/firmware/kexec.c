@@ -234,6 +234,7 @@ kexec_init(char *kernel_path, char *initrd_path, char *cmdline) {
 	config.cmdline = cmdline;
 }
 
+#if 0
 uint64_t
 kexec(void)
 {
@@ -283,3 +284,76 @@ kexec(void)
 
 	return kernel.base;
 }
+#endif
+
+
+uint64_t
+kexec(void)
+{
+    void *gpa_map;
+
+//    gpa_map = arm64_map_lowmem(0, arm64_get_lowmem_size());
+
+
+        gpa_map = xh_vm_map_gpa(0, xh_vm_get_lowmem_size());
+        lowmem.base = (uintptr_t) gpa_map;
+        lowmem.size = xh_vm_get_lowmem_size();
+
+
+    lowmem.base = (uintptr_t) gpa_map;
+    lowmem.size = arm64_get_lowmem_size();
+
+    if (arm64_load_kernel(config.kernel, config.cmdline ? config.cmdline : "auto")) {
+        fprintf(stderr, "kexec: failed to load kernel %s\n", config.kernel);
+        abort();
+    }
+
+    if (config.initrd && arm64_load_ramdisk(config.initrd)) {
+        fprintf(stderr, "kexec: failed to load initrd %s\n", config.initrd);
+        abort();
+    }
+
+    // Remove GDT and segment register setup code
+
+    arm64_vcpu_reset(0);
+
+    // Set up ARM64-specific registers
+    arm64_vm_set_register(0, VM_REG_GUEST_X0, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_X1, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_X2, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_X3, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_X4, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_X5, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_X6, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_X7, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_X8, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_X9, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_X10, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_X11, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_X12, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_X13, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_X14, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_X15, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_X16, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_X17, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_X18, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_X19, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_X20, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_X21, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_X22, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_X23, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_X24, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_X25, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_X26, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_X27, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_X28, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_X29, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_X30, 0);
+    arm64_vm_set_register(0, VM_REG_GUEST_SP, BASE_ZEROPAGE);
+    arm64_vm_set_register(0, VM_REG_GUEST_PC, kernel.base);
+
+    return kernel.base;
+}
+
+
+
