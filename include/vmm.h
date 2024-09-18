@@ -45,6 +45,7 @@ enum vm_suspend_how {
 	VM_SUSPEND_LAST
 };
 
+#if 0
 /*
  * Identifiers for architecturally defined registers.
  */
@@ -90,6 +91,53 @@ enum vm_reg_name {
 	VM_REG_GUEST_TCR_EL1,
 	VM_REG_GUEST_TCR2_EL1,
 	VM_REG_LAST
+};
+#endif
+
+enum vm_reg_name {
+    VM_REG_GUEST_X0,
+    VM_REG_GUEST_X1,
+    VM_REG_GUEST_X2,
+    VM_REG_GUEST_X3,
+    VM_REG_GUEST_X4,
+    VM_REG_GUEST_X5,
+    VM_REG_GUEST_X6,
+    VM_REG_GUEST_X7,
+    VM_REG_GUEST_X8,
+    VM_REG_GUEST_X9,
+    VM_REG_GUEST_X10,
+    VM_REG_GUEST_X11,
+    VM_REG_GUEST_X12,
+    VM_REG_GUEST_X13,
+    VM_REG_GUEST_X14,
+    VM_REG_GUEST_X15,
+    VM_REG_GUEST_X16,
+    VM_REG_GUEST_X17,
+    VM_REG_GUEST_X18,
+    VM_REG_GUEST_X19,
+    VM_REG_GUEST_X20,
+    VM_REG_GUEST_X21,
+    VM_REG_GUEST_X22,
+    VM_REG_GUEST_X23,
+    VM_REG_GUEST_X24,
+    VM_REG_GUEST_X25,
+    VM_REG_GUEST_X26,
+    VM_REG_GUEST_X27,
+    VM_REG_GUEST_X28,
+    VM_REG_GUEST_X29,  // Frame Pointer (FP)
+    VM_REG_GUEST_X30,  // Link Register (LR)
+    VM_REG_GUEST_SP,   // Stack Pointer (SP)
+    VM_REG_GUEST_SP_EL1, // Stack Pointer for EL1
+    VM_REG_GUEST_SPSR,  // Saved Program Status Register
+    VM_REG_GUEST_PC,   // Program Counter (PC)
+    VM_REG_GUEST_PSTATE, // Processor State
+    VM_REG_GUEST_TPIDR_EL0, // Thread ID Register (EL0)
+    VM_REG_GUEST_TPIDR_EL1, // Thread ID Register (EL1)
+    VM_REG_GUEST_VBAR_EL1,  // Vector Base Address Register (EL1)
+    VM_REG_GUEST_CNTV_CTL_EL0,  // Timer Control
+    VM_REG_GUEST_CNTV_TVAL_EL0, // Timer Value
+    VM_REG_GUEST_CNTV_CVAL_EL0, // Timer Compare Value
+    VM_REG_LAST
 };
 
 #define	VM_INTINFO_VECTOR(info)	((info) & 0xff)
