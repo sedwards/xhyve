@@ -130,6 +130,8 @@ enum vm_reg_name {
     VM_REG_GUEST_X29,  // Frame Pointer (FP)
     VM_REG_GUEST_X30,  // Link Register (LR)
     VM_REG_GUEST_SP,   // Stack Pointer (SP)
+    VM_REG_GUEST_SP_EL1, // Stack Pointer for EL1
+    VM_REG_GUEST_SPSR,  // Saved Program Status Register
     VM_REG_GUEST_PC,   // Program Counter (PC)
     VM_REG_GUEST_PSTATE, // Processor State
     VM_REG_GUEST_TPIDR_EL0, // Thread ID Register (EL0)

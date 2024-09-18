@@ -1309,6 +1309,7 @@ vmx_paging_mode(int vcpu)
 	return 0;
 }
 
+#ifdef __x86_64__
 static uint64_t
 inout_str_index(struct vmx *vmx, int vcpuid, int in)
 {
@@ -1321,7 +1322,23 @@ inout_str_index(struct vmx *vmx, int vcpuid, int in)
 	KASSERT(error == 0, ("%s: vmx_getreg error %d", __func__, error));
 	return (val);
 }
+#endif
 
+static uint64_t
+inout_str_index(struct vmx *vmx, int vcpuid, int in)
+{
+        uint64_t val;
+        int error;
+        enum vm_reg_name reg;
+
+        // Use X1 for destination index, X0 for source index
+        reg = in ? VM_REG_GUEST_X1 : VM_REG_GUEST_X0;
+        error = vmx_getreg(vmx, vcpuid, reg, &val);
+        KASSERT(error == 0, ("%s: vmx_getreg error %d", __func__, error));
+        return (val);
+}
+
+#ifdef __x86_64__
 static uint64_t
 inout_str_count(struct vmx *vmx, int vcpuid, int rep)
 {
@@ -1336,6 +1353,24 @@ inout_str_count(struct vmx *vmx, int vcpuid, int rep)
 	}
 	return (val);
 }
+#endif
+
+static uint64_t
+inout_str_count(struct vmx *vmx, int vcpuid, int rep)
+{
+        uint64_t val;
+        int error;
+
+        if (rep) {
+                // Use X2 as a general-purpose register for the count
+                error = vmx_getreg(vmx, vcpuid, VM_REG_GUEST_X2, &val);
+                KASSERT(!error, ("%s: vmx_getreg error %d", __func__, error));
+        } else {
+                val = 1;
+        }
+        return (val);
+}
+
 
 static int
 inout_str_addrsize(uint32_t inst_info)

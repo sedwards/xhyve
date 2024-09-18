@@ -868,8 +868,8 @@ xh_vcpu_reset(int vcpu)
         SET_REG(VM_REG_GUEST_X26, 0) ||
         SET_REG(VM_REG_GUEST_X27, 0) ||
         SET_REG(VM_REG_GUEST_X28, 0) ||
-        SET_REG(VM_REG_GUEST_FP, 0) ||  // Frame pointer (X29)
-        SET_REG(VM_REG_GUEST_LR, 0) ||  // Link register (X30)
+      //  SET_REG(VM_REG_GUEST_FP, 0) ||  // Frame pointer (X29)
+      //  SET_REG(VM_REG_GUEST_LR, 0) ||  // Link register (X30)
         SET_REG(VM_REG_GUEST_SPSR, 0)   // SPSR (Saved Program Status Register)
     ) {
         return error;

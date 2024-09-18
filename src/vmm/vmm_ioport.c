@@ -95,6 +95,7 @@ inout_instruction(struct vm_exit *vmexit)
 }
 #endif	/* XHYVE_CONFIG_TRACE */
 
+#if 0
 static int
 emulate_inout_port(struct vm *vm, int vcpuid, struct vm_exit *vmexit,
     bool *retu)
@@ -134,7 +135,7 @@ emulate_inout_port(struct vm *vm, int vcpuid, struct vm_exit *vmexit,
 	if (vmexit->u.inout.in) {
 		vmexit->u.inout.eax &= ~mask;
 		vmexit->u.inout.eax |= val & mask;
-		error = vm_set_register(vm, vcpuid, VM_REG_GUEST_XAX,
+		error = vm_set_register(vm, vcpuid, VM_REG_GUEST_RAX,
 		    vmexit->u.inout.eax);
 		KASSERT(error == 0, ("emulate_ioport: error %d setting guest "
 		    "rax register", error));
@@ -142,6 +143,113 @@ emulate_inout_port(struct vm *vm, int vcpuid, struct vm_exit *vmexit,
 	*retu = false;
 	return (0);
 }
+
+#endif
+
+#if 0
+
+#define VM_REG_GUEST_X0 0 // example register for ARM64
+
+handler = mmioHandler(vmexit->u.mmio.addr);
+
+struct vmExit {
+    union {
+        struct {
+            uint64_t addr;    // MMIO address
+            uint64_t val;     // Value for read/write
+            bool read;        // Read or write operation
+            int bytes;        // Number of bytes to access
+        } mmio;
+        // other vm exit types...
+    } u;
+};
+
+
+typedef int (*mmioHandlerFunc_t)(struct vm *vm, int vcpuid, bool read, uint64_t addr, int bytes, uint64_t *val);
+
+
+#include "path/to/vm_exit.h"  // Ensure vmExit is fully visible
+
+typedef int (*mmioHandlerFunc_t)(struct vm *vm, int vcpuid, bool read, uint64_t addr, int bytes, uint64_t *val);
+
+static int
+emulateMmio(struct vm *vm, int vcpuid, struct vmExit *vmexit, bool *retu)
+{
+    mmioHandlerFunc_t handler;
+    uint64_t mask, val;
+    int error;
+
+    /*
+     * If there is no handler for the MMIO address, punt to userspace.
+     */
+    handler = mmioHandler(vmexit->u.mmio.addr);
+    if (handler == NULL) {
+        *retu = true;
+        return 0;
+    }
+
+    mask = (uint64_t) vieSize2Mask(vmexit->u.mmio.bytes);
+
+    if (!vmexit->u.mmio.read) {
+        val = vmexit->u.mmio.val & mask;
+    }
+
+    error = (*handler)(vm, vcpuid, vmexit->u.mmio.read, vmexit->u.mmio.addr, vmexit->u.mmio.bytes, &val);
+    if (error) {
+        return EIO;
+    }
+
+    if (vmexit->u.mmio.read) {
+        vmexit->u.mmio.val &= ~mask;
+        vmexit->u.mmio.val |= val & mask;
+        error = vmSetRegister(vm, vcpuid, VM_REG_GUEST_X0, vmexit->u.mmio.val);  // ARM register instead of RAX
+        KASSERT(error == 0, ("emulateMmio: error %d setting guest X0 register", error));
+    }
+
+    *retu = false;
+    return 0;
+}
+
+
+
+static int
+emulateMmio(struct vm *vm, int vcpuid, struct vmExit *vmexit, bool *retu)
+{
+    mmioHandlerFunc_t handler;
+    uint64_t mask, val;
+    int error;
+
+    /*
+     * If there is no handler for the MMIO address, punt to userspace.
+     */
+    if ((handler = mmioHandler(vmexit->u.mmio.addr)) == NULL) {
+        *retu = true;
+        return (0);
+    }
+
+    mask = (uint64_t) vieSize2Mask(vmexit->u.mmio.bytes);
+
+    if (!vmexit->u.mmio.read) {
+        val = vmexit->u.mmio.val & mask;
+    }
+
+    error = (*handler)(vm, vcpuid, vmexit->u.mmio.read, vmexit->u.mmio.addr, vmexit->u.mmio.bytes, &val);
+    if (error) {
+        return (EIO);
+    }
+
+    if (vmexit->u.mmio.read) {
+        vmexit->u.mmio.val &= ~mask;
+        vmexit->u.mmio.val |= val & mask;
+        error = vmSetRegister(vm, vcpuid, VM_REG_GUEST_RAX, vmexit->u.mmio.val);
+        KASSERT(error == 0, ("emulateMmio: error %d setting guest RAX register", error));
+    }
+
+    *retu = false;
+    return (0);
+}
+#endif
+
 
 static int
 emulate_inout_str(bool *retu)

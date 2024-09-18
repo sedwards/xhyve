@@ -166,6 +166,7 @@ sel_exception(int vcpu, int vector, uint16_t sel, int ext)
 static int
 desc_table_limit_check(int vcpu, uint16_t sel)
 {
+#if 0
 	uint64_t base;
 	uint32_t limit, access;
 	int error, reg;
@@ -183,6 +184,8 @@ desc_table_limit_check(int vcpu, uint16_t sel)
 		return (-1);
 	else
 		return (0);
+#endif
+	return (-1);
 }
 
 /*
@@ -198,6 +201,7 @@ desc_table_rw(int vcpu, struct vm_guest_paging *paging,
     uint16_t sel, struct user_segment_descriptor *desc, bool doread,
     int *faultptr)
 {
+#if 0
 	struct iovec iov[2];
 	uint64_t base;
 	uint32_t limit, access;
@@ -218,6 +222,7 @@ desc_table_rw(int vcpu, struct vm_guest_paging *paging,
 		xh_vm_copyin(iov, desc, sizeof(*desc));
 	else
 		xh_vm_copyout(desc, iov, sizeof(*desc));
+#endif
 	return (0);
 }
 
@@ -321,12 +326,14 @@ validate_seg_desc(int vcpu, struct vm_task_switch *ts, int segment,
 	case VM_REG_GUEST_SS:
 		stackseg = true;
 		break;
+/*
 	case VM_REG_GUEST_DS:
 	case VM_REG_GUEST_ES:
 	case VM_REG_GUEST_FS:
 	case VM_REG_GUEST_GS:
 		dataseg = true;
 		break;
+*/
 	default:
 		assert(0);
 	}
@@ -425,6 +432,7 @@ validate_seg_desc(int vcpu, struct vm_task_switch *ts, int segment,
 	return (0);
 }
 
+#if 0
 static void
 tss32_save(int vcpu, struct vm_task_switch *task_switch,
     uint32_t eip, struct tss32 *tss, struct iovec *iov)
@@ -457,6 +465,37 @@ tss32_save(int vcpu, struct vm_task_switch *task_switch,
 	/* Copy updated old TSS into guest memory */
 	xh_vm_copyout(tss, iov, sizeof(struct tss32));
 }
+#endif
+
+static void
+tss32_save(int vcpu, struct vm_task_switch *task_switch,
+    uint32_t eip, struct tss32 *tss, struct iovec *iov)
+{
+    /* General purpose registers - Map to ARM64 general-purpose registers */
+    tss->tss_eax = (uint32_t) GETREG(vcpu, VM_REG_GUEST_X0);
+    tss->tss_ecx = (uint32_t) GETREG(vcpu, VM_REG_GUEST_X1);
+    tss->tss_edx = (uint32_t) GETREG(vcpu, VM_REG_GUEST_X2);
+    tss->tss_ebx = (uint32_t) GETREG(vcpu, VM_REG_GUEST_X3);
+    tss->tss_esp = (uint32_t) GETREG(vcpu, VM_REG_GUEST_X4);
+    tss->tss_ebp = (uint32_t) GETREG(vcpu, VM_REG_GUEST_X5);
+    tss->tss_esi = (uint32_t) GETREG(vcpu, VM_REG_GUEST_X6);
+    tss->tss_edi = (uint32_t) GETREG(vcpu, VM_REG_GUEST_X7);
+
+    /* ARM64 does not have segment registers, so you can remove or handle this part differently */
+    // No equivalents for x86 segment registers like ES, CS, etc.
+    // If needed, you can preserve or handle them differently.
+
+    /* eflags and eip - ARM64 uses PSTATE (Program Status Register) and ELR (Exception Link Register) */
+    tss->tss_eflags = (uint32_t) GETREG(vcpu, VM_REG_GUEST_PSTATE);  // Equivalent to eflags
+    tss->tss_eip = (uint32_t) GETREG(vcpu, VM_REG_GUEST_ELR);  // Equivalent to eip
+
+    if (task_switch->reason == TSR_IRET)
+        tss->tss_eflags &= ~((unsigned) PSL_NT);
+
+    /* Copy updated old TSS into guest memory */
+    xh_vm_copyout(tss, iov, sizeof(struct tss32));
+}
+
 
 static void
 update_seg_desc(int vcpu, int reg, struct seg_desc *sd)
@@ -466,6 +505,8 @@ update_seg_desc(int vcpu, int reg, struct seg_desc *sd)
 	error = xh_vm_set_desc(vcpu, reg, sd->base, sd->limit, sd->access);
 	assert(error == 0);
 }
+
+#if 0
 
 /*
  * Update the vcpu registers to reflect the state of the new task.
@@ -521,6 +562,7 @@ tss32_restore(int vcpu, struct vm_task_switch *ts, uint16_t ot_sel,
 			SETREG(vcpu, VM_REG_GUEST_PDPTE3, pdpte[3]);
 		}
 		SETREG(vcpu, VM_REG_GUEST_CR3, tss->tss_cr3);
+		//SETREG(vcpu, VM_REG_GUEST_X8, tss->tss_cr3);
 		ts->paging.cr3 = tss->tss_cr3;
 	}
 
@@ -608,6 +650,52 @@ tss32_restore(int vcpu, struct vm_task_switch *ts, uint16_t ot_sel,
 
 	return (0);
 }
+
+#endif
+
+/*
+ * Update the vcpu registers to reflect the state of the new task.
+ */
+static int
+tss32_restore(int vcpu, struct vm_task_switch *ts, uint16_t ot_sel,
+        struct tss32 *tss, struct iovec *iov, int *faultptr)
+{
+    uint32_t eflags;
+    int error;
+
+    /* Update eflags and eip */
+    eflags = tss->tss_eflags;
+    SETREG(vcpu, VM_REG_GUEST_XFLAGS, eflags);
+    SETREG(vcpu, VM_REG_GUEST_XIP, tss->tss_eip);
+
+    /* General purpose registers */
+    SETREG(vcpu, VM_REG_GUEST_X0, tss->tss_eax);  // Example, adjust based on ARM64
+    SETREG(vcpu, VM_REG_GUEST_X1, tss->tss_ecx);
+    SETREG(vcpu, VM_REG_GUEST_X2, tss->tss_edx);
+    SETREG(vcpu, VM_REG_GUEST_X3, tss->tss_ebx);
+    SETREG(vcpu, VM_REG_GUEST_SP, tss->tss_esp);
+    SETREG(vcpu, VM_REG_GUEST_X29, tss->tss_ebp);  // Frame pointer
+    SETREG(vcpu, VM_REG_GUEST_X4, tss->tss_esi);
+    SETREG(vcpu, VM_REG_GUEST_X5, tss->tss_edi);
+
+    /* Segment registers are not applicable in ARM64, remove or adjust */
+
+    /* PBDR and paging settings are specific to x86 */
+    // Remove or adapt paging settings based on ARM64's page table structures
+    // For example, if ARM64 paging setup is needed, you would set up page tables here
+
+    /* If this is a nested task, update TSS */
+    if (ts->reason == TSR_IRET || ts->reason == TSR_JMP) {
+        xh_vm_copyout(tss, iov, sizeof(*tss));
+    }
+
+    /* Segment descriptor validation is not applicable */
+    // Remove or adapt segment descriptor validation for ARM64
+
+    return (0);
+}
+
+
 
 /*
  * Push an error code on the stack of the new task. This is needed if the

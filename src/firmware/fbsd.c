@@ -130,6 +130,7 @@ static struct segment_descriptor i386_gdt[] = {
 	  .sd_type = SDT_SYS386TSS, .sd_p = 1 }
 };
 
+#if 0
 static int
 fbsd_set_regs_i386(uint32_t eip, uint32_t gdt_base, uint32_t esp)
 {
@@ -262,6 +263,9 @@ fbsd_set_regs_i386(uint32_t eip, uint32_t gdt_base, uint32_t esp)
 done:
 	return (error);
 }
+
+
+#endif
 
 static int
 fbsd_set_regs(uint64_t rip, uint64_t cr3, uint64_t gdt_base, uint64_t rsp)

@@ -1110,7 +1110,6 @@ emulate_or(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
 	error = vie_update_register(vm, vcpuid, VM_REG_GUEST_XFLAGS, rflags, 8);
 	return (error);
 }
-#endif
 static int
 emulate_cmp(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
 	    mem_region_read_t memread, UNUSED mem_region_write_t memwrite,
@@ -1509,6 +1508,7 @@ emulate_bittest(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
 
 	return (0);
 }
+#endif
 
 int
 vmm_emulate_instruction(void *vm, int vcpuid, uint64_t gpa, struct vie *vie,
@@ -1622,6 +1622,7 @@ vie_size2mask(int size)
 	return (size2mask[size]);
 }
 
+#if 0
 int
 vie_calculate_gla(enum vm_cpu_mode cpu_mode, enum vm_reg_name seg,
     struct seg_desc *desc, uint64_t offset, int length, int addrsize,
@@ -1731,6 +1732,7 @@ vie_calculate_gla(enum vm_cpu_mode cpu_mode, enum vm_reg_name seg,
 	*gla = (segbase + firstoff) & vie_size2mask(glasize);
 	return (0);
 }
+#endif
 
 void
 vie_init(struct vie *vie, const char *inst_bytes, int inst_length)
@@ -1769,6 +1771,7 @@ pf_error_code(int usermode, int prot, int rsvd, uint64_t pte)
 	return (error_code);
 }
 
+#if 0
 int
 vm_gla2gpa(struct vm *vm, int vcpuid, struct vm_guest_paging *paging,
     uint64_t gla, int prot, uint64_t *gpa, int *guest_fault)
@@ -1960,6 +1963,7 @@ fault:
 	*guest_fault = 1;
 	goto done;
 }
+#endif
 
 int
 vmm_fetch_instruction(struct vm *vm, int vcpuid, struct vm_guest_paging *paging,
@@ -2001,6 +2005,7 @@ vie_advance(struct vie *vie)
 	vie->num_processed++;
 }
 
+#if 0
 static bool
 segment_override(uint8_t x, int *seg)
 {
@@ -2029,6 +2034,7 @@ segment_override(uint8_t x, int *seg)
 	}
 	return (true);
 }
+#endif
 
 static int
 decode_prefixes(struct vie *vie, enum vm_cpu_mode cpu_mode, int cs_d)
@@ -2206,9 +2212,9 @@ decode_modrm(struct vie *vie, enum vm_cpu_mode cpu_mode)
 			 * whereas in compatibility mode it just implies disp32.
 			 */
 
-			if (cpu_mode == CPU_MODE_64BIT)
-				vie->base_register = VM_REG_GUEST_XIP;
-			else
+			//if (cpu_mode == CPU_MODE_64BIT)
+			//	vie->base_register = VM_REG_GUEST_RIP;
+			//else
 				vie->base_register = VM_REG_LAST;
 		}
 		break;
@@ -2417,6 +2423,7 @@ verify_inst_length(struct vie *vie)
 		return (-1);
 }
 
+#if 0 
 /*
  * Verify that the 'guest linear address' provided as collateral of the nested
  * page table fault matches with our instruction decoding.
@@ -2471,6 +2478,7 @@ verify_gla(struct vm *vm, int cpuid, uint64_t gla, struct vie *vie)
 
 	return (0);
 }
+#endif
 
 int
 vmm_decode_instruction(struct vm *vm, int cpuid, uint64_t gla,

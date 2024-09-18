@@ -226,6 +226,7 @@ fbsdrun_virtio_msix(void)
 	return (virtio_msix);
 }
 
+#if 0
 static void
 spinup_ap_realmode(int newcpu, uint64_t *rip)
 {
@@ -257,6 +258,89 @@ spinup_ap_realmode(int newcpu, uint64_t *rip)
 	error = xh_vm_set_register(newcpu, VM_REG_GUEST_CS, cs);
 	assert(error == 0);
 }
+#endif
+
+
+/*
+void spinup_ap_arm64(int newcpu, uint64_t entry_point)
+{
+    int error;
+
+    // Set the entry point for the new CPU (secondary CPU boot address)
+    error = arm64_set_secondary_entry(newcpu, entry_point);
+    assert(error == 0);
+
+    // Use PSCI to bring up the CPU (this is platform-specific)
+    error = psci_cpu_on(newcpu, entry_point);
+    assert(error == 0);
+}*/
+
+/*
+Explanation:
+Secondary Entry Point Storage:
+
+The secondary CPU’s entry point is typically stored in a memory-mapped register or RAM location that the secondary core reads on boot. The address 0x10000000 is just an example. In real systems, this could be set by a bootloader or platform firmware.
+Per-CPU Entry Points:
+
+This example assumes that each CPU has its own memory location to store its entry point (SECONDARY_ENTRY_POINT_ADDR + (cpu_id * sizeof(uint64_t))), but this can vary based on the platform.
+Platform-Specific Handling:
+
+On some platforms, the entry point is written to a control register or passed via inter-processor communication mechanisms. For instance, systems that support PSCI would manage entry points differently (PSCI might be used directly to boot the core without needing to set an explicit entry address).
+Error Handling:
+
+This example inc
+*/
+
+
+/*
+
+#include <stdint.h>
+#include <assert.h>
+
+// Hypothetical address where the entry point for secondary cores is written.
+// This could be platform-specific, so adjust based on your system.
+#define SECONDARY_ENTRY_POINT_ADDR   0x10000000
+
+// Function to set the secondary CPU's entry point in memory.
+int arm64_set_secondary_entry(int cpu_id, uint64_t entry_point)
+{
+    // The location for setting the entry point is platform-specific. 
+    // For example, it could be a memory-mapped register or an address in shared memory.
+    volatile uint64_t *secondary_entry = (uint64_t *)(SECONDARY_ENTRY_POINT_ADDR + (cpu_id * sizeof(uint64_t)));
+
+    // Write the entry point for the secondary CPU to start execution
+    *secondary_entry = entry_point;
+
+    // Optionally, check if the write was successful.
+    assert(*secondary_entry == entry_point);
+
+    return 0;
+}
+*/
+
+/*
+
+In this case, PSCI is a standardized way to manage power and state for CPUs in ARM systems, and you wouldn't need to manually set the secondary entry point. The PSCI interface would handle it for you when calling PSCI_CPU_ON.
+
+Overall Approach:
+Use PSCI if supported by your platform.
+Otherwise, write the secondary CPU entry point to a memory or register location that the CPU will check when booting up.
+Let me know if your platform has any specific requirements for bringing up secondary cores!
+
+#include <psci.h>
+
+int psci_cpu_on(int cpu_id, uint64_t entry_point)
+{
+    // PSCI function to power on the secondary CPU
+    int error = psci_call(PSCI_CPU_ON, cpu_id, entry_point, 0);
+
+    return error;
+}
+
+*/
+
+
+
 
 static void *
 vcpu_thread(void *param)
@@ -399,11 +483,13 @@ vmexit_rdmsr(struct vm_exit *vme, int *pvcpu)
 	}
 
 	eax = (uint32_t) val;
-	error = xh_vm_set_register(*pvcpu, VM_REG_GUEST_XAX, eax);
+	//error = xh_vm_set_register(*pvcpu, VM_REG_GUEST_XAX, eax);
+	error = xh_vm_set_register(*pvcpu, VM_REG_GUEST_X5, eax);
 	assert(error == 0);
 
 	edx = val >> 32;
-	error = xh_vm_set_register(*pvcpu, VM_REG_GUEST_XDX, edx);
+	//error = xh_vm_set_register(*pvcpu, VM_REG_GUEST_XDX, edx);
+	error = xh_vm_set_register(*pvcpu, VM_REG_GUEST_X7, edx);
 	assert(error == 0);
 
 	return (VMEXIT_CONTINUE);
