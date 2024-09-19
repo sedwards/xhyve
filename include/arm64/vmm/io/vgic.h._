@@ -28,11 +28,13 @@
 #ifndef _VGIC_H_
 #define	_VGIC_H_
 
+#include <sys/bus.h>     // For device_t
+#include <stdbool.h>     // For bool
+
 struct hyp;
 struct hypctx;
 struct vm_vgic_descr;
 
-typedef struct device *device_t;
 extern device_t vgic_dev;
 
 bool vgic_present(void);

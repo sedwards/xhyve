@@ -1,4 +1,3 @@
-#if 0
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
  *
@@ -27,12 +26,41 @@
  * SUCH DAMAGE.
  */
 
+#include <stdint.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+#include <sys/malloc.h>
+#include <sys/systm.h>
+
+#include <errno.h>
+#include <assert.h>
+
+#define CACHE_LINE_SIZE 64
+
+#include <stdbool.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/malloc.h>
+
+typedef uint64_t vm_paddr_t;
+#include "vmm.h"
+
+#include <sys/vmm.h>
+#include <sys/vmm_dev.h>
+#include <sys/callout.h>
+
+#include <sys/device.h>
+
+#include <sys/param.h>
+#include <sys/callout.h>
+
 #include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/smp.h>
 #include <sys/kernel.h>
-#include <sys/malloc.h>
 #include <sys/mman.h>
 #include <sys/pcpu.h>
 #include <sys/proc.h>
@@ -41,6 +69,8 @@
 #include <sys/mutex.h>
 #include <sys/vmem.h>
 
+#include <pte.h>
+
 #include <vm/vm.h>
 #include <vm/pmap.h>
 #include <vm/vm_extern.h>
@@ -48,11 +78,19 @@
 #include <vm/vm_page.h>
 #include <vm/vm_param.h>
 
+#include <vm/vm_page.h>  // For vm_pindex_t and vm_paddr_t
+#include <stdbool.h>     // For bool
+
+#include <sys/types.h>
+
 #include <machine/armreg.h>
 #include <machine/vm.h>
 #include <machine/cpufunc.h>
 #include <machine/cpu.h>
 #include <machine/machdep.h>
+
+#include <vmm.h>
+
 #include <machine/vmm.h>
 #include <machine/vmm_dev.h>
 #include <machine/atomic.h>
@@ -60,6 +98,10 @@
 #include <machine/pmap.h>
 
 #include "mmu.h"
+
+//struct callout
+#include <sys/callout.h>
+
 #include "arm64.h"
 #include "hyp.h"
 #include "reset.h"
@@ -67,6 +109,29 @@
 #include "io/vgic_v3.h"
 #include "io/vtimer.h"
 #include "vmm_stat.h"
+
+#include "vmm.h"
+
+// devic_t
+#include <sys/device.h>
+
+// vmem_t
+#include <sys/vmem.h>
+
+// CTASSERT
+#include <sys/param.h>
+
+//MALLOC_DEFINE
+#include <sys/malloc.h>
+
+
+// DPCPU_DEFINE_STATIC and DPCPU_SET / DPCPU_GET
+#include <sys/pcpu.h>
+
+
+// MAXCPU
+#include <sys/param.h>
+
 
 #define	HANDLED		1
 #define	UNHANDLED	0
@@ -1336,5 +1401,4 @@ vmmops_setcap(void *vcpui, int num, int val)
 
 	return (ENOENT);
 }
-#endif
 

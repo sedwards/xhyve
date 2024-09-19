@@ -189,7 +189,8 @@ extern struct vpgqueues vm_page_queues[PQ_COUNT];
 struct vpglocks {
 	struct mtx	data;
 	char		pad[CACHE_LINE_SIZE - sizeof(struct mtx)];
-} __aligned(CACHE_LINE_SIZE);
+} __attribute__((aligned(CACHE_LINE_SIZE)));
+// Fix for mac port
 
 extern struct vpglocks vm_page_queue_free_lock;
 extern struct vpglocks pa_lock[];

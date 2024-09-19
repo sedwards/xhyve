@@ -66,9 +66,14 @@
 #ifndef	_VM_MAP_
 #define	_VM_MAP_
 
+#include <sys/types.h>
 #include <sys/lock.h>
 #include <sys/sx.h>
 #include <sys/_mutex.h>
+
+// Type definitions for ARM64
+typedef uint64_t vm_pindex_t;
+typedef uint64_t vm_paddr_t;
 
 /*
  *	Types defined:

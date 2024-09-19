@@ -36,7 +36,7 @@
 
 #ifndef _SYS__CALLOUT_H
 #define	_SYS__CALLOUT_H
-#if 0
+
 typedef int64_t __sbintime_t;
 
 #include <sys/_types.h>
@@ -65,5 +65,4 @@ struct callout {
 	short	c_iflags;			/* Internal State */
 	volatile int c_cpu;			/* CPU we're scheduled on */
 };
-#endif
 #endif

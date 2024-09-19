@@ -1,7 +1,8 @@
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
  *
- * Copyright (c) 2023 Arm Ltd
+ * Copyright 2006 John-Mark Gurney.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -15,7 +16,7 @@
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
  * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
@@ -23,30 +24,41 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
+ *
  */
 
-#ifndef _VGIC_H_
-#define	_VGIC_H_
+#ifndef _SYS__BUS_DMA_H_
+#define _SYS__BUS_DMA_H_
 
-struct hyp;
-struct hypctx;
-struct vm_vgic_descr;
+typedef int bus_dmasync_op_t;
 
-extern device_t vgic_dev;
+/*
+ *	bus_dma_tag_t
+ *
+ *	A machine-dependent opaque type describing the characteristics
+ *	of how to perform DMA mappings.  This structure encapsultes
+ *	information concerning address and alignment restrictions, number
+ *	of S/G segments, amount of data per S/G segment, etc.
+ */
+typedef struct bus_dma_tag	*bus_dma_tag_t;
 
-bool vgic_present(void);
-void vgic_init(void);
-int vgic_attach_to_vm(struct hyp *hyp, struct vm_vgic_descr *descr);
-void vgic_detach_from_vm(struct hyp *hyp);
-void vgic_vminit(struct hyp *hyp);
-void vgic_cpuinit(struct hypctx *hypctx);
-void vgic_cpucleanup(struct hypctx *hypctx);
-void vgic_vmcleanup(struct hyp *hyp);
-int vgic_max_cpu_count(struct hyp *hyp);
-bool vgic_has_pending_irq(struct hypctx *hypctx);
-int vgic_inject_irq(struct hyp *hyp, int vcpuid, uint32_t irqid, bool level);
-int vgic_inject_msi(struct hyp *hyp, uint64_t msg, uint64_t addr);
-void vgic_flush_hwstate(struct hypctx *hypctx);
-void vgic_sync_hwstate(struct hypctx *hypctx);
+/*
+ *	bus_dmamap_t
+ *
+ *	DMA mapping instance information.
+ */
+typedef struct bus_dmamap	*bus_dmamap_t;
 
-#endif /* _VGIC_H_ */
+/*
+ * A function that performs driver-specific synchronization on behalf of
+ * busdma.
+ */
+typedef enum {
+	BUS_DMA_LOCK	= 0x01,
+	BUS_DMA_UNLOCK	= 0x02,
+} bus_dma_lock_op_t;
+
+typedef void bus_dma_lock_t(void *, bus_dma_lock_op_t);
+
+#endif /* !_SYS__BUS_DMA_H_ */
+

@@ -29,7 +29,7 @@
 #define _VMM_ARM64_H_
 
 #include <machine/reg.h>
-//#include <machine/hypervisor.h>
+#include <machine/hypervisor.h>
 #include <machine/pcpu.h>
 
 #include "mmu.h"
