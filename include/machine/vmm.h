@@ -37,6 +37,7 @@
 
 struct vcpu;
 
+#if 0
 enum vm_suspend_how {
 	VM_SUSPEND_NONE,
 	VM_SUSPEND_RESET,
@@ -91,6 +92,7 @@ enum vm_reg_name {
 	VM_REG_GUEST_TCR2_EL1,
 	VM_REG_LAST
 };
+#endif
 
 #define	VM_INTINFO_VECTOR(info)	((info) & 0xff)
 #define	VM_INTINFO_DEL_ERRCODE	0x800
@@ -280,6 +282,7 @@ struct vm_copyinfo {
 #define	VM_GP_M_MASK		0x1f
 #define	VM_GP_MMU_ENABLED	(1 << 5)
 
+#if 0
 struct vm_guest_paging {
 	uint64_t	ttbr0_addr;
 	uint64_t	ttbr1_addr;
@@ -288,6 +291,7 @@ struct vm_guest_paging {
 	int		flags;
 	int		padding;
 };
+#endif
 
 struct vie {
 	uint8_t access_size:4, sign_extend:1, dir:1, unused:2;
@@ -300,6 +304,7 @@ struct vre {
 	enum vm_reg_name reg;
 };
 
+#if 0
 /*
  * Identifiers for optional vmm capabilities
  */
@@ -328,6 +333,7 @@ enum vm_exitcode {
 	VM_EXITCODE_SS,
 	VM_EXITCODE_MAX
 };
+#endif
 
 struct vm_exit {
 	enum vm_exitcode	exitcode;

@@ -32,6 +32,7 @@
 #ifndef _SYS__CPUSET_H_
 #define	_SYS__CPUSET_H_
 
+#if 0
 #include <sys/_bitset.h>
 
 #ifdef _KERNEL
@@ -52,5 +53,5 @@ typedef struct _cpuset cpuset_t;
 
 #define	CPUSET_FSET		BITSET_FSET(_NCPUWORDS)
 #define	CPUSET_T_INITIALIZER	BITSET_T_INITIALIZER
-
+#endif
 #endif /* !_SYS__CPUSET_H_ */

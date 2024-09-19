@@ -26,6 +26,37 @@
  * SUCH DAMAGE.
  */
 
+#include <stdint.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <errno.h>
+#include <assert.h>
+
+#include <Hypervisor/hv.h>
+#include <Hypervisor/hv_vmx.h>
+#include <Hypervisor/hv_vcpu.h>
+#include <Hypervisor/hv_base.h>
+#include <Hypervisor/hv_vm_types.h>
+#include <xhyve/support/misc.h>
+#include <xhyve/support/atomic.h>
+#include <xhyve/support/psl.h>
+#include <xhyve/support/specialreg.h>
+#include <xhyve/vmm/vmm.h>
+#include <xhyve/vmm/vmm_instruction_emul.h>
+#include <xhyve/vmm/vmm_lapic.h>
+#include <xhyve/vmm/vmm_host.h>
+#include <xhyve/vmm/vmm_ktr.h>
+#include <xhyve/vmm/vmm_stat.h>
+#include <xhyve/vmm/io/vatpic.h>
+#include <xhyve/vmm/io/vlapic.h>
+#include <xhyve/vmm/io/vlapic_priv.h>
+#include <xhyve/vmm/aarch64.h>
+#include <xhyve/vmm/aarch64/vmcs.h>
+#include <xhyve/vmm/aarch64/vmx_msr.h>
+#include <xhyve/dtrace.h>
+
+
 #include <stdbool.h>
 
 #include <sys/cdefs.h>
