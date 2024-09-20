@@ -27,6 +27,9 @@
 #ifndef _VMM_H_
 #define	_VMM_H_
 
+#if 0
+/////// include vmm.h - this is onlt for porting ///////
+/////////////////////////////////////////////////////////////////////////
 #include <sys/param.h>
 #include <sys/cpuset.h>
 // #include <vm/vm.h> ? machine/vm.h
@@ -293,10 +296,12 @@ struct vm_guest_paging {
 };
 #endif
 
+#if 0
 struct vie {
 	uint8_t access_size:4, sign_extend:1, dir:1, unused:2;
 	enum vm_reg_name reg;
 };
+#endif
 
 struct vre {
 	uint32_t inst_syndrome;
@@ -378,6 +383,8 @@ struct vm_exit {
 		} suspended;
 	} u;
 };
+
+#endif
 
 #endif	/* _VMM_H_ */
 

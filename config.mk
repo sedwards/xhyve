@@ -37,7 +37,8 @@ CFLAGS_WARN := \
   -Wno-implicit-function-declaration \
   -Wno-asm-operand-widths \
   -Wno-unknown-warning-option \
-  -Wno-reserved-id-macro
+  -Wno-reserved-id-macro \
+  -Wno-macro-redefined
 
 CFLAGS_DIAG := \
   -fmessage-length=152 \

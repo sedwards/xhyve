@@ -29,24 +29,53 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-#include <sys/types.h>
-#include <sys/systm.h>
-//#include <sys/bus.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/mutex.h>
-//#include <sys/rman.h>
-#include <sys/time.h>
-//#include <sys/timeet.h>
-//#include <sys/timetc.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <errno.h>
+#include <assert.h>
 
-//#include <machine/bus.h>
-#include <machine/machdep.h>
-#include <machine/vmm.h>
-#include <machine/armreg.h>
+#include <Hypervisor/hv.h>
+#include <Hypervisor/hv_vmx.h>
+#include <Hypervisor/hv_vcpu.h>
+#include <Hypervisor/hv_base.h>
+#include <Hypervisor/hv_vm_types.h>
+#include <xhyve/support/misc.h>
+#include <xhyve/support/atomic.h>
+#include <xhyve/support/psl.h>
+#include <xhyve/support/specialreg.h>
+#include <xhyve/vmm/vmm.h>
+#include <xhyve/vmm/vmm_instruction_emul.h>
+#include <xhyve/vmm/vmm_lapic.h>
+#include <xhyve/vmm/vmm_host.h>
+#include <xhyve/vmm/vmm_ktr.h>
+#include <xhyve/vmm/vmm_stat.h>
+#include <xhyve/vmm/io/vatpic.h>
+#include <xhyve/vmm/io/vlapic.h>
+#include <xhyve/vmm/io/vlapic_priv.h>
+#include <xhyve/vmm/aarch64.h>
+#include <xhyve/vmm/aarch64/vmcs.h>
+#include <xhyve/vmm/aarch64/vmx_msr.h>
+#include <xhyve/dtrace.h>
+#include <armreg.h>
 
-#include <arm64/vmm/arm64.h>
+//#include <dev/pci/pcireg.h>
+
+struct vcpu {
+        int             flags;
+        enum vcpu_state state;
+        struct mtx      mtx;
+        int             hostcpu;        /* host cpuid this vcpu last ran on */
+        int             vcpuid;
+        void            *stats;
+        struct vm_exit  exitinfo;
+        uint64_t        nextpc;         /* (x) next instruction to execute */
+        struct vm       *vm;            /* (o) */
+        void            *cookie;        /* (i) cpu-specific data */
+        struct vfpstate *guestfpu;      /* (a,i) guest fpu state */
+};
+
 
 #include "vgic.h"
 #include "vtimer.h"
@@ -502,5 +531,4 @@ DEFINE_CLASS_0(vtimer, vtimer_driver, vtimer_methods,
     sizeof(struct vtimer_softc));
 
 DRIVER_MODULE(vtimer, generic_timer, vtimer_driver, 0, 0);
-
 #endif

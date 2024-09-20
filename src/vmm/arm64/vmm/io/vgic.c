@@ -1,4 +1,3 @@
-#if 0
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
  *
@@ -125,5 +124,4 @@ vgic_sync_hwstate(struct hypctx *hypctx)
 {
 	VGIC_SYNC_HWSTATE(vgic_dev, hypctx);
 }
-#endif
 

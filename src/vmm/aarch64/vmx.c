@@ -1596,6 +1596,7 @@ apic_access_fault(struct vmx *vmx, int vcpuid, uint64_t gpa)
 		return (false);
 }
 
+#if 0
 static int
 vmx_handle_apic_access(struct vmx *vmx, int vcpuid, struct vm_exit *vmexit)
 {
@@ -1682,6 +1683,7 @@ vmx_handle_apic_access(struct vmx *vmx, int vcpuid, struct vm_exit *vmexit)
 	 */
 	return (UNHANDLED);
 }
+#endif
 
 static enum task_switch_reason
 vmx_task_switch_reason(uint64_t qual)
@@ -2097,9 +2099,9 @@ vmx_exit_process(struct vmx *vmx, int vcpu, struct vm_exit *vmexit)
 		vmexit->u.ioapic_eoi.vector = qual & 0xFF;
 		vmexit->inst_length = 0;	/* trap-like */
 		break;
-	case EXIT_REASON_APIC_ACCESS:
-		handled = vmx_handle_apic_access(vmx, vcpu, vmexit);
-		break;
+//	case EXIT_REASON_APIC_ACCESS:
+//		handled = vmx_handle_apic_access(vmx, vcpu, vmexit);
+//		break;
 	case EXIT_REASON_APIC_WRITE:
 		/*
 		 * APIC-write VM exit is trap-like so the %rip is already

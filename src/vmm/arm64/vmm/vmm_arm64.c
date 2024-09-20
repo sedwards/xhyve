@@ -1,3 +1,5 @@
+#if 0
+
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
  *
@@ -26,83 +28,180 @@
  * SUCH DAMAGE.
  */
 
+
+
+/*
+he types vm_ooffset_t and vm_offset_t are both used in managing virtual memory, but they serve different purposes:
+
+vm_offset_t:
+
+Represents an offset within the virtual address space of a process.
+Typically defined as an unsigned integer type (e.g., uintptr_t).
+It is used for specifying a location or offset within virtual memory (like a memory address).
+In FreeBSD, it may be defined as:
+
+typedef uintptr_t vm_offset_t;
+Example usage: Memory addresses or offsets within the address space of a process or kernel.
+
+vm_ooffset_t:
+
+Represents an offset within a virtual memory object (vm_object_t).
+Often defined as a 64-bit signed integer, allowing it to represent larger offsets or negative values (for certain memory-mapped objects).
+In FreeBSD, it may be defined as:
+
+typedef int64_t vm_ooffset_t;
+Example usage: When dealing with memory-mapped files or virtual memory objects where you need to track offsets within the object.
+
+Key Difference:
+vm_offset_t is used for addressing memory locations within the virtual memory space of a process or kernel.
+vm_ooffset_t is used to track offsets within a virtual memory object, typically in the context of managing memory-mapped files or shared memory.
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
-
-#include <sys/malloc.h>
-#include <sys/systm.h>
-
 #include <errno.h>
 #include <assert.h>
 
+#include <Hypervisor/hv.h>
+#include <Hypervisor/hv_vmx.h>
+#include <Hypervisor/hv_vcpu.h>
+#include <Hypervisor/hv_base.h>
+#include <Hypervisor/hv_vm_types.h>
+#include <xhyve/support/misc.h>
+#include <xhyve/support/atomic.h>
+#include <xhyve/support/psl.h>
+#include <xhyve/support/specialreg.h>
+#include <xhyve/vmm/vmm.h>
+#include <xhyve/vmm/vmm_instruction_emul.h>
+#include <xhyve/vmm/vmm_lapic.h>
+#include <xhyve/vmm/vmm_host.h>
+#include <xhyve/vmm/vmm_ktr.h>
+#include <xhyve/vmm/vmm_stat.h>
+#include <xhyve/vmm/io/vatpic.h>
+#include <xhyve/vmm/io/vlapic.h>
+#include <xhyve/vmm/io/vlapic_priv.h>
+#include <xhyve/vmm/aarch64.h>
+#include <xhyve/vmm/aarch64/vmcs.h>
+#include <xhyve/vmm/aarch64/vmx_msr.h>
+#include <xhyve/dtrace.h>
+
 #define CACHE_LINE_SIZE 64
+#define CTASSERT(x) _Static_assert(x, #x)
 
-#include <stdbool.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/malloc.h>
-
+#include <vm/vm.h>
+typedef struct vm_page *vm_page_t;
+typedef uint64_t vm_pindex_t;
 typedef uint64_t vm_paddr_t;
-#include "vmm.h"
 
-#include <sys/vmm.h>
-#include <sys/vmm_dev.h>
-#include <sys/callout.h>
+//#include <vm/vm_page.h>
 
-#include <sys/device.h>
+typedef uintptr_t vm_offset_t;
+//typedef int64_t vm_ooffset_t;
 
+#include <vm/vm_object.h>
+#include <vm/vm_page.h>
+#include <machine/pmap.h>
+#include <pmap.h>
+#include <arm64/vmm/mmu.h>
+#include <arm64/vmm/hyp.h>
+#include <machine/hypervisor.h>
+
+// Useful macros
+#define CACHE_LINE_SIZE 64
+#define CTASSERT(x) _Static_assert(x, #x)
+
+// #include "hypctx.h"  // Example header where struct hypctx is defined
+
+//DPCPU_DEFINE_STATIC(struct hypctx *, vcpu);
+
+#define PAGE_SIZE 4096  // or whatever is appropriate for your architecture
+// Useful macros
+#define CACHE_LINE_SIZE 64
+#define CTASSERT(x) _Static_assert(x, #x)
+#define PAGE_SIZE_4K  4096
+#define PAGE_SIZE  PAGE_SIZE_4K
+
+//DPCPU_DEFINE_STATIC(struct hypctx *, vcpu);
+#include <sys/pcpu.h>  // For DPCPU macros
+#include <machine/cpu.h>  // For cpuid and CPU-specific macros
+
+#include <armreg.h>
+#include <machine/armreg.h>
 #include <sys/param.h>
-#include <sys/callout.h>
 
-#include <sys/cdefs.h>
+#if 0
+#include <sys/vmem.h>
+
+//#include <vmm.h>
+//#include <sys/cpuset.h>
+
+#include <sys/types.h>
 #include <sys/param.h>
+#include <sys/malloc.h>
 #include <sys/systm.h>
-#include <sys/smp.h>
-#include <sys/kernel.h>
-#include <sys/mman.h>
+#include <sys/callout.h>
+#include <sys/device.h>
 #include <sys/pcpu.h>
+#include <sys/mman.h>
 #include <sys/proc.h>
 #include <sys/sysctl.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
-#include <sys/vmem.h>
 
-#include <pte.h>
-
-#include <vm/vm.h>
-#include <vm/pmap.h>
-#include <vm/vm_extern.h>
-#include <vm/vm_map.h>
-#include <vm/vm_page.h>
-#include <vm/vm_param.h>
-
-#include <vm/vm_page.h>  // For vm_pindex_t and vm_paddr_t
-#include <stdbool.h>     // For bool
-
-#include <sys/types.h>
-
-#include <machine/armreg.h>
 #include <machine/vm.h>
 #include <machine/cpufunc.h>
 #include <machine/cpu.h>
 #include <machine/machdep.h>
-
-#include <vmm.h>
-
-#include <machine/vmm.h>
-#include <machine/vmm_dev.h>
+//#include <machine/vmm.h>
 #include <machine/atomic.h>
 #include <machine/hypervisor.h>
 #include <machine/pmap.h>
 
+#include <vm/vm.h>
+#include <vm/pmap.h>
+#include <vm/vm_map.h>
+#include <vm/vm_page.h>
+
+#include <vm/vm_param.h>
+
+#include "pte.h"
+#include "vmm.h"
 #include "mmu.h"
-
-//struct callout
-#include <sys/callout.h>
-
 #include "arm64.h"
+#include "armreg.h"
 #include "hyp.h"
 #include "reset.h"
 #include "io/vgic.h"
@@ -110,28 +209,14 @@ typedef uint64_t vm_paddr_t;
 #include "io/vtimer.h"
 #include "vmm_stat.h"
 
-#include "vmm.h"
+#endif
 
-// devic_t
-#include <sys/device.h>
-
-// vmem_t
-#include <sys/vmem.h>
-
-// CTASSERT
-#include <sys/param.h>
-
-//MALLOC_DEFINE
-#include <sys/malloc.h>
-
-
-// DPCPU_DEFINE_STATIC and DPCPU_SET / DPCPU_GET
-#include <sys/pcpu.h>
-
-
-// MAXCPU
-#include <sys/param.h>
-
+// Useful macros
+#define CACHE_LINE_SIZE 64
+#define CTASSERT(x) _Static_assert(x, #x)
+#define PAGE_SIZE_4K  4096
+#define PAGE_SIZE  PAGE_SIZE_4K
+#define MAXCPU 64  // Adjust this value as needed
 
 #define	HANDLED		1
 #define	UNHANDLED	0
@@ -152,7 +237,10 @@ struct vmm_init_regs {
 	uint64_t vtcr_el2;
 };
 
-MALLOC_DEFINE(M_HYP, "ARM VMM HYP", "ARM VMM HYP");
+#include <sys/malloc.h>
+
+//#define M_HYP "ARM VMM HYP"
+//MALLOC_DEFINE(M_HYP, "ARM VMM HYP", "ARM VMM HYP");
 
 extern char hyp_init_vectors[];
 extern char hyp_vectors[];
@@ -356,7 +444,7 @@ vmmops_modinit(int ipinum)
 	}
 
 	/* Set up the stage 2 pmap callbacks */
-	MPASS(pmap_clean_stage2_tlbi == NULL);
+	MPASS(vmm_pmap_clean_stage2_tlbi == NULL);
 	pmap_clean_stage2_tlbi = vmm_pmap_clean_stage2_tlbi;
 	pmap_stage2_invalidate_range = vmm_pmap_invalidate_range;
 	pmap_stage2_invalidate_all = vmm_pmap_invalidate_all;
@@ -1402,3 +1490,4 @@ vmmops_setcap(void *vcpui, int num, int val)
 	return (ENOENT);
 }
 
+#endif
