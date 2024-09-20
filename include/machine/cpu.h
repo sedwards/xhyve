@@ -68,7 +68,7 @@
 #define	CPU_AFF_MASK	(CPU_AFF0_MASK | CPU_AFF1_MASK | \
     CPU_AFF2_MASK| CPU_AFF3_MASK)	/* Mask affinity fields in MPIDR_EL1 */
 
-#ifdef _KERNEL
+//#ifdef _KERNEL
 
 #define	CPU_IMPL_ARM		0x41
 #define	CPU_IMPL_BROADCOM	0x42
@@ -198,7 +198,7 @@
     CPU_IMPL_CAVIUM, CPU_PART_THUNDERX, 0, CPU_REV_THUNDERX_1_1))
 #else
 #define	CPU_MATCH_ERRATA_CAVIUM_THUNDERX_1_1	0
-#endif
+//#endif
 
 #if !defined(__ASSEMBLER__)
 extern char btext[];

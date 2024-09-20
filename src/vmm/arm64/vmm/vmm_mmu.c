@@ -1,4 +1,3 @@
-
 #if 0
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
@@ -30,6 +29,46 @@
  * SUCH DAMAGE.
  */
 
+#include <stdint.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <errno.h>
+#include <assert.h>
+
+#include <Hypervisor/hv.h>
+#include <Hypervisor/hv_vmx.h>
+#include <Hypervisor/hv_vcpu.h>
+#include <Hypervisor/hv_base.h>
+#include <Hypervisor/hv_vm_types.h>
+#include <xhyve/support/misc.h>
+#include <xhyve/support/atomic.h>
+#include <xhyve/support/psl.h>
+#include <xhyve/support/specialreg.h>
+#include <xhyve/vmm/vmm.h>
+#include <xhyve/vmm/vmm_instruction_emul.h>
+#include <xhyve/vmm/vmm_lapic.h>
+#include <xhyve/vmm/vmm_host.h>
+#include <xhyve/vmm/vmm_ktr.h>
+#include <xhyve/vmm/vmm_stat.h>
+#include <xhyve/vmm/io/vatpic.h>
+#include <xhyve/vmm/io/vlapic.h>
+#include <xhyve/vmm/io/vlapic_priv.h>
+#include <xhyve/vmm/aarch64.h>
+#include <xhyve/vmm/aarch64/vmcs.h>
+#include <xhyve/vmm/aarch64/vmx_msr.h>
+#include <xhyve/dtrace.h>
+
+
+#include <stdbool.h>
+#include <armreg.h>
+
+#include <sys/cdefs.h>
+#include <sys/types.h>
+#include <sys/systm.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+
 #include <stdbool.h>
 
 #include <sys/cdefs.h>
@@ -50,8 +89,29 @@
 #include <machine/vmm.h>
 #include <machine/vmparam.h>
 
-#include "mmu.h"
+#include <arm64/vmm/mmu.h>
 #include "arm64.h"
+
+struct vcpu {
+        int             flags;
+        enum vcpu_state state;
+        struct mtx      mtx;
+        int             hostcpu;        /* host cpuid this vcpu last ran on */
+        int             vcpuid;
+        void            *stats;
+        struct vm_exit  exitinfo;
+        uint64_t        nextpc;         /* (x) next instruction to execute */
+        struct vm       *vm;            /* (o) */
+        void            *cookie;        /* (i) cpu-specific data */
+        struct vfpstate *guestfpu;      /* (a,i) guest fpu state */
+};
+
+#define vcpu_lock_initialized(v) mtx_initialized(&((v)->mtx))
+#define vcpu_lock_init(v)       mtx_init(&((v)->mtx), "vcpu lock", 0, MTX_SPIN)
+#define vcpu_lock_destroy(v)    mtx_destroy(&((v)->mtx))
+#define vcpu_lock(v)            mtx_lock_spin(&((v)->mtx))
+#define vcpu_unlock(v)          mtx_unlock_spin(&((v)->mtx))
+#define vcpu_assert_locked(v)   mtx_assert(&((v)->mtx), MA_OWNED)
 
 static struct mtx vmmpmap_mtx;
 static pt_entry_t *l0;
@@ -432,6 +492,5 @@ vmmpmap_remove(vm_offset_t va, vm_size_t size, bool invalidate)
 		free(l3_list, M_TEMP);
 	}
 }
-
 #endif
 

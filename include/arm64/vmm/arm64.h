@@ -31,12 +31,12 @@
 #include <stdbool.h>
 
 #include <machine/reg.h>
-//#include <machine/hypervisor.h>
+#include <machine/hypervisor.h>
 #include <machine/pcpu.h>
 
-#include "mmu.h"
-#include "io/vgic_v3.h"
-#include "io/vtimer.h"
+#include <arm64/vmm/mmu.h>
+#include <io/vgic_v3.h>
+#include <io/vtimer.h>
 
 struct vgic_v3;
 struct vgic_v3_cpu;

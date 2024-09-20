@@ -41,7 +41,8 @@
 #define	_SYS_SYSTM_H_
 
 #include <sys/types.h>
-#include <sys/callout.h>
+//#include <sys/callout.h>
+#include <xhyve/vmm/vmm_callout.h>
 #include <sys/kassert.h>
 #include <sys/queue.h>
 #include <stdint.h>		/* for people using printf mainly */

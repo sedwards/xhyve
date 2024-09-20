@@ -1051,6 +1051,7 @@ vmx_emulate_xsetbv(struct vmx *vmx, int vcpu)
 	return (HANDLED);
 }
 
+#if 0
 static uint64_t
 vmx_get_guest_reg(int vcpu, int ident)
 {
@@ -1091,7 +1092,50 @@ vmx_get_guest_reg(int vcpu, int ident)
 		xhyve_abort("invalid vmx register %d", ident);
 	}
 }
+#endif
 
+static uint64_t
+arm64_get_guest_reg(int vcpu, int ident)
+{
+    switch (ident) {
+    case 0:
+        return reg_read(vcpu, HV_REG_X0);
+    case 1:
+        return reg_read(vcpu, HV_REG_X1);
+    case 2:
+        return reg_read(vcpu, HV_REG_X2);
+    case 3:
+        return reg_read(vcpu, HV_REG_X3);
+    case 4:
+        return vmcs_read(vcpu, VMCS_GUEST_SP); // Stack pointer
+    case 5:
+        return reg_read(vcpu, HV_REG_X29); // Frame pointer (FP)
+    case 6:
+        return reg_read(vcpu, HV_REG_X6);
+    case 7:
+        return reg_read(vcpu, HV_REG_X7);
+    case 8:
+        return reg_read(vcpu, HV_REG_X8);
+    case 9:
+        return reg_read(vcpu, HV_REG_X9);
+    case 10:
+        return reg_read(vcpu, HV_REG_X10);
+    case 11:
+        return reg_read(vcpu, HV_REG_X11);
+    case 12:
+        return reg_read(vcpu, HV_REG_X12);
+    case 13:
+        return reg_read(vcpu, HV_REG_X13);
+    case 14:
+        return reg_read(vcpu, HV_REG_X14);
+    case 15:
+        return reg_read(vcpu, HV_REG_X15);
+    default:
+        xhyve_abort("invalid ARM64 register %d", ident);
+    }
+}
+
+#if 0
 static void
 vmx_set_guest_reg(int vcpu, int ident, uint64_t regval)
 {
@@ -1148,6 +1192,65 @@ vmx_set_guest_reg(int vcpu, int ident, uint64_t regval)
 		xhyve_abort("invalid vmx register %d", ident);
 	}
 }
+#endif
+
+static void
+arm64_set_guest_reg(int vcpu, int ident, uint64_t regval)
+{
+    switch (ident) {
+    case 0:
+        reg_write(vcpu, HV_REG_X0, regval);
+        break;
+    case 1:
+        reg_write(vcpu, HV_REG_X1, regval);
+        break;
+    case 2:
+        reg_write(vcpu, HV_REG_X2, regval);
+        break;
+    case 3:
+        reg_write(vcpu, HV_REG_X3, regval);
+        break;
+    case 4:
+        vmcs_write(vcpu, VMCS_GUEST_SP, regval);  // Stack pointer
+        break;
+    case 5:
+        reg_write(vcpu, HV_REG_X29, regval);  // Frame pointer (FP)
+        break;
+    case 6:
+        reg_write(vcpu, HV_REG_X6, regval);
+        break;
+    case 7:
+        reg_write(vcpu, HV_REG_X7, regval);
+        break;
+    case 8:
+        reg_write(vcpu, HV_REG_X8, regval);
+        break;
+    case 9:
+        reg_write(vcpu, HV_REG_X9, regval);
+        break;
+    case 10:
+        reg_write(vcpu, HV_REG_X10, regval);
+        break;
+    case 11:
+        reg_write(vcpu, HV_REG_X11, regval);
+        break;
+    case 12:
+        reg_write(vcpu, HV_REG_X12, regval);
+        break;
+    case 13:
+        reg_write(vcpu, HV_REG_X13, regval);
+        break;
+    case 14:
+        reg_write(vcpu, HV_REG_X14, regval);
+        break;
+    case 15:
+        reg_write(vcpu, HV_REG_X15, regval);
+        break;
+    default:
+        xhyve_abort("invalid ARM64 register %d", ident);
+    }
+}
+
 
 static int
 vmx_emulate_cr0_access(UNUSED struct vm *vm, int vcpu, uint64_t exitqual)

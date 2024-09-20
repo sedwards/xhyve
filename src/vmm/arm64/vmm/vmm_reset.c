@@ -58,6 +58,7 @@
 
 
 #include <stdbool.h>
+#include <armreg.h>
 
 #include <sys/cdefs.h>
 #include <sys/types.h>
@@ -67,10 +68,31 @@
 
 #include <machine/armreg.h>
 #include <machine/cpu.h>
-//#include <machine/hypervisor.h>
+#include <machine/hypervisor.h>
 
-#include "arm64.h"
-#include "reset.h"
+#include <arm64/vmm/arm64.h>
+//#include "reset.h"
+
+struct vcpu {
+        int             flags;
+        enum vcpu_state state;
+        struct mtx      mtx;
+        int             hostcpu;        /* host cpuid this vcpu last ran on */
+        int             vcpuid;
+        void            *stats;
+        struct vm_exit  exitinfo;
+        uint64_t        nextpc;         /* (x) next instruction to execute */
+        struct vm       *vm;            /* (o) */
+        void            *cookie;        /* (i) cpu-specific data */
+        struct vfpstate *guestfpu;      /* (a,i) guest fpu state */
+};
+
+#define vcpu_lock_initialized(v) mtx_initialized(&((v)->mtx))
+#define vcpu_lock_init(v)       mtx_init(&((v)->mtx), "vcpu lock", 0, MTX_SPIN)
+#define vcpu_lock_destroy(v)    mtx_destroy(&((v)->mtx))
+#define vcpu_lock(v)            mtx_lock_spin(&((v)->mtx))
+#define vcpu_unlock(v)          mtx_unlock_spin(&((v)->mtx))
+#define vcpu_assert_locked(v)   mtx_assert(&((v)->mtx), MA_OWNED)
 
 /*
  * Make the architecturally UNKNOWN value 0. As a bonus, we don't have to
